@@ -1,5 +1,6 @@
-const OLLAMA_PROXY_URL = '/api/ollama'
-const DIRECT_OLLAMA_URL = 'http://localhost:11434/api/generate'
+const LOCAL_PROXY_URL = 'http://127.0.0.1:8787/api/ollama'
+const SAME_ORIGIN_PROXY_URL = '/api/ollama'
+const DIRECT_OLLAMA_URL = 'http://127.0.0.1:11434/api/generate'
 const MODEL = 'qwen2.5-coder:7b'
 
 export function isOllamaConfigured() {
@@ -8,22 +9,37 @@ export function isOllamaConfigured() {
 
 async function generate(prompt, model = MODEL) {
   const payload = { model, prompt, stream: false, options: { temperature: 0.2 } }
-  let response
-  try {
-    response = await fetch(OLLAMA_PROXY_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-  } catch {
-    response = null
-  }
-  if (!response || !response.ok) {
+
+  const endpoints = [
+    LOCAL_PROXY_URL,
+    SAME_ORIGIN_PROXY_URL,
+    DIRECT_OLLAMA_URL,
+  ]
+
+  let lastError = null
+
+  for (const endpoint of endpoints) {
     try {
-      response = await fetch(DIRECT_OLLAMA_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-    } catch {
-      throw new Error('Local Ollama is not reachable. Start Ollama and the DevStation local proxy on port 8787.')
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        return data.response || ''
+      }
+
+      lastError = new Error(`Ollama returned HTTP ${response.status}.`)
+    } catch (error) {
+      lastError = error
     }
   }
-  if (!response.ok) throw new Error(`Ollama returned HTTP ${response.status}. Check that the selected model is installed.`)
-  const data = await response.json()
-  return data.response || ''
+
+  throw new Error(
+    'Cannot reach local Ollama. Start Ollama and run local-ai-proxy/start-proxy.bat from the workstation repository.'
+  )
 }
 
 export async function askOllama(prompt, project = {}) {
