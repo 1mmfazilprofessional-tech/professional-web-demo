@@ -25,7 +25,7 @@ import {
   TestTube2,
   X,
   Zap,
-} from 'lucide-react'
+\n  AlertTriangle,\n  Braces,\n  Bug,\n  FileCode2,\n  FolderTree,\n  Gauge,\n  GitCommitHorizontal,\n  HelpCircle,\n  ListChecks,\n  LockKeyhole,\n  MessageSquare,\n  Package,\n  PlayCircle,\n  Presentation,\n  RefreshCw,\n  RotateCcw,\n  Route,\n  Search,\n  ShieldAlert,\n  Target,\n  Terminal,\n  Wrench,\n} from 'lucide-react'
 import Button from './components/ui/Button'
 import Card from './components/ui/Card'
 import Badge from './components/ui/Badge'
@@ -50,9 +50,6 @@ const navItems = [
   ['present', 'Presentation', Presentation],
   ['tasks', 'Tasks', CheckCircle2],
   ['ai', 'Local AI', BrainCircuit],
-  ['quality', 'Quality', ShieldCheck],
-  ['deploy', 'Deploy', Rocket],
-  ['present', 'Presentation', Play],
 ]
 
 const stageItems = [
@@ -333,9 +330,6 @@ function App() {
           {active === 'deploy' && <Deployment deployment={deployment} busy={deploymentBusy} error={deploymentError} runAnalysis={runDeploymentAnalysis} />}
           {active === 'present' && <PresentationDemo presentation={presentation} busy={presentationBusy} error={presentationError} runAnalysis={runPresentationAnalysis} />}
           {active === 'tasks' && <Tasks blueprint={blueprint} />}
-          {active === 'quality' && <Quality />}
-          {active === 'deploy' && <Deploy />}
-          {active === 'present' && <Presentation project={project} blueprint={blueprint} />}
 
           {active === 'ai' && (
             <LocalAI
@@ -351,6 +345,118 @@ function App() {
       </div>
     </div>
   )
+}
+
+
+function Metric({ label, value }) {
+  return (
+    <Card>
+      <div className="metric-card">
+        <strong>{value}</strong>
+        <span>{label}</span>
+      </div>
+    </Card>
+  )
+}
+
+function BlueprintCard({ title, icon: Icon, items = [] }) {
+  return (
+    <Card>
+      <div className="card-heading"><span><Icon size={17} /> {title}</span><Badge color="secondary">Blueprint</Badge></div>
+      <ul className="clean-list">
+        {items.filter(Boolean).map((item, index) => <li key={index}><CheckCircle2 size={15} /> <span>{item}</span></li>)}
+      </ul>
+    </Card>
+  )
+}
+
+function ArchitectureNode({ icon: Icon, title, subtitle }) {
+  return (
+    <div className="architecture-node">
+      <div className="architecture-icon"><Icon size={19} /></div>
+      <strong>{title}</strong>
+      <small>{subtitle}</small>
+    </div>
+  )
+}
+
+function TechStack({ blueprint }) {
+  const items = [
+    ['Frontend', blueprint.platform === '3D / immersive web' ? 'React + Three.js / WebGL' : 'React + Vite'],
+    ['State', 'React state + local persistence'],
+    ['Styling', 'CSS design system'],
+    ['AI', 'Local Ollama when needed'],
+    ['Data', blueprint.services.includes('Database') ? 'Database selected by architecture' : 'Browser storage / no database required'],
+  ]
+  return (
+    <>
+      <PageHeader eyebrow="TECH STACK" title="Choose technology from the problem." description="The stack should follow the product constraints, not the other way around." />
+      <div className="dashboard-grid">
+        {items.map(([name, value]) => (
+          <Card key={name}><div className="card-heading"><span><Layers3 size={17} /> {name}</span></div><p>{value}</p></Card>
+        ))}
+      </div>
+    </>
+  )
+}
+
+function Tasks({ blueprint }) {
+  const tasks = blueprint.tasks || []
+  return (
+    <>
+      <PageHeader eyebrow="IMPLEMENTATION TASKS" title="Work in a clear execution order." description="Break the blueprint into small, verifiable engineering tasks." />
+      <div className="pipeline-grid">
+        {tasks.map((task, index) => {
+          const name = typeof task === 'string' ? task : task.name
+          const detail = typeof task === 'string' ? 'Implementation task' : task.detail
+          return <Card key={index}><div className="pipeline-number">0{index + 1}</div><h3>{name}</h3><p>{detail}</p></Card>
+        })}
+      </div>
+    </>
+  )
+}
+
+function LocalAI({ prompt, setPrompt, response, busy, run, configured }) {
+  return (
+    <>
+      <PageHeader eyebrow="LOCAL AI" title="Use your laptop's local model." description="Send focused engineering questions to Ollama through the local workstation proxy." />
+      <Card>
+        <div className="card-heading"><span><BrainCircuit size={17} /> Ollama</span><Badge color={configured ? 'success' : 'warning'}>{configured ? 'Configured' : 'Not configured'}</Badge></div>
+        <textarea className="workstation-textarea" rows="6" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Ask for architecture reasoning, debugging help, implementation guidance, or a critical review..." />
+        <div className="hero-actions"><Button onClick={run} disabled={busy || !prompt.trim()}>{busy ? 'Thinking…' : 'Ask Local AI'} <BrainCircuit size={17} /></Button></div>
+        {response && <div className="ai-response"><pre>{response}</pre></div>}
+      </Card>
+    </>
+  )
+}
+
+function buildBlueprint(project, analysis) {
+  const problem = project.problem.trim() || 'Define the problem statement before building.'
+  const features = analysis?.mvpFeatures?.map((item) => item.name) || [
+    'Core problem-solving workflow',
+    'Input validation and useful feedback',
+    'Responsive interface',
+    'Clear success and error states',
+  ]
+  const screens = analysis?.recommendedScreens || [
+    'Home / Overview',
+    'Primary workflow',
+    'Results / Status',
+    'Settings / Help',
+  ]
+  const services = analysis?.recommendedServices || (
+    /api|database|auth|login|ai|model|backend|server/i.test(problem)
+      ? ['Frontend application', 'API / service layer', 'Data or external integration']
+      : ['Frontend application', 'Browser storage', 'Validation and local business logic']
+  )
+  const tasks = [
+    { name: 'Validate the problem and MVP scope', detail: 'Confirm the target user, critical workflow and measurable outcome.' },
+    { name: 'Build the core user flow', detail: 'Implement the smallest complete path from input to useful result.' },
+    { name: 'Add states and validation', detail: 'Handle loading, empty, success, error and edge cases.' },
+    { name: 'Test the critical path', detail: 'Verify the main journey across desktop and mobile.' },
+    { name: 'Prepare the release', detail: 'Run build checks, publish and verify the deployed experience.' },
+  ]
+  return { problem, features, screens, services, tasks }
 }
 
 function PageHeader({ eyebrow, title, description, action }) {
