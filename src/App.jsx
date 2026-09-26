@@ -208,9 +208,11 @@ function App() {
   const [generatedProduct, setGeneratedProduct] = useState(() => savedWorkspace?.generatedProduct ?? null)
   const [productBusy, setProductBusy] = useState(false)
   const [productError, setProductError] = useState('')
+  const [productVerification, setProductVerification] = useState(() => savedWorkspace?.productVerification ?? null)
+  const [verificationBusy, setVerificationBusy] = useState(false)
 
   const blueprint = useMemo(() => buildBlueprint(project, analysis), [project, analysis])
-  const stages = useMemo(() => ({ analysis, architecture, experience, codePlan, integration, quality, testing, repoOps, deployment, presentation }), [analysis, architecture, experience, codePlan, integration, quality, testing, repoOps, deployment, presentation, generatedProduct])
+  const stages = useMemo(() => ({ analysis, architecture, experience, codePlan, integration, quality, testing, repoOps, deployment, presentation, generatedProductVerification: productVerification?.status === 'pass' }), [analysis, architecture, experience, codePlan, integration, quality, testing, repoOps, deployment, presentation, generatedProduct])
 
   useEffect(() => {
     saveWorkspace({
@@ -230,8 +232,9 @@ function App() {
       deployment,
       presentation,
       generatedProduct,
+      productVerification,
     })
-  }, [active, project, created, analysis, architecture, experience, codePlan, integration, debugInput, debugResult, quality, testing, repoOps, deployment, presentation])
+  }, [active, project, created, analysis, architecture, experience, codePlan, integration, debugInput, debugResult, quality, testing, repoOps, deployment, presentation, generatedProduct, productVerification])
 
   useEffect(() => {
     checkOllamaHealth().then(setOllamaHealth)
@@ -362,6 +365,83 @@ function App() {
     finally { setPresentationBusy(false) }
   }
 
+  const runProductVerification = async (product = generatedProduct) => {
+    if (!product?.files) {
+      setProductVerification({ status: 'pending', summary: 'Build the runnable product before verification.', checks: [] })
+      return
+    }
+
+    const runnable = product.files.find((file) => file.path === 'index.html')
+    if (!runnable?.content) {
+      setProductVerification({ status: 'fail', summary: 'No runnable index.html was generated.', checks: [{ name: 'Runnable HTML', ok: false, detail: 'index.html is missing.' }] })
+      return
+    }
+
+    setVerificationBusy(true)
+    try {
+      const html = String(runnable.content)
+      const lower = html.toLowerCase()
+      const checks = [
+        ['Complete HTML document', /<!doctype html>/i.test(html) && /<html[\s>]/i.test(html) && /<\/html>/i.test(html), 'DOCTYPE, html root and closing html are present.'],
+        ['Inline styling', /<style[\s>]/i.test(html) && /:root|--[a-z0-9-]+\s*:/.test(html), 'The product contains an inline design system rather than external stylesheet dependencies.'],
+        ['Browser logic', /<script[\s>]/i.test(html), 'The product contains client-side behavior.'],
+        ['Product structure', (html.match(/<(section|main|article|dialog|nav)\b/gi) || []).length >= 5, 'At least five meaningful structural regions are present.'],
+        ['Useful interactions', (html.match(/<(button|a|summary|input|select|textarea)\b/gi) || []).length >= 8, 'At least eight interactive controls are present.'],
+        ['Interaction logic', (html.match(/addEventListener|onclick|onsubmit|onchange|oninput|classList\.(add|remove|toggle)/gi) || []).length >= 5, 'The page contains multiple interaction handlers or state changes.'],
+        ['Visual system', (html.match(/animation:|transition:|transform:|linear-gradient|radial-gradient|box-shadow/gi) || []).length >= 12, 'The product contains a substantial visual/motion system.'],
+        ['Feedback states', (html.match(/loading|empty|success|error|active|selected|disabled/gi) || []).length >= 4, 'Multiple user feedback/state concepts are represented.'],
+        ['No placeholder dependencies', !/(styles\.css|scripts\.js|lorem ipsum|TODO:|coming soon)/i.test(html), 'No obvious placeholder files or unfinished markers were found.'],
+        ['No unnecessary auth shell', !/(sign up|signup|login)/i.test(html) || /(authentication|account|sign in)/i.test(JSON.stringify({ project })), 'Authentication UI is absent unless the supplied project requires it.'],
+        ['No external runtime dependency', !/<(script|link)\b[^>]+(?:src|href)=["']https?:\/\//i.test(html), 'The standalone product does not require a CDN or remote runtime asset.'],
+        ['Reasonable product size', html.length >= 12000, 'The generated product is large enough to avoid a minimal template.'],
+      ].map(([name, ok, detail]) => ({ name, ok, detail }))
+
+      const runtime = await new Promise((resolve) => {
+        let settled = false
+        const finish = (result) => {
+          if (settled) return
+          settled = true
+          clearTimeout(timer)
+          try { frame.remove() } catch {}
+          resolve(result)
+        }
+        const frame = document.createElement('iframe')
+        frame.setAttribute('title', 'Generated product verification')
+        frame.style.cssText = 'position:fixed;left:-10000px;top:-10000px;width:1280px;height:720px;border:0;opacity:0;pointer-events:none;'
+        let runtimeError = ''
+        const timer = setTimeout(() => finish({ ok: !runtimeError, detail: runtimeError || 'Generated HTML loaded without a captured runtime error.' }), 2500)
+        frame.addEventListener('load', () => {
+          try {
+            frame.contentWindow?.addEventListener('error', (event) => { runtimeError = event?.message || 'Runtime JavaScript error.' })
+            setTimeout(() => finish({ ok: !runtimeError, detail: runtimeError || 'Generated product loaded in a browser iframe.' }), 700)
+          } catch (error) {
+            finish({ ok: false, detail: error instanceof Error ? error.message : String(error) })
+          }
+        }, { once: true })
+        frame.srcdoc = html
+        document.body.appendChild(frame)
+      })
+      checks.push({ name: 'Browser runtime smoke test', ok: runtime.ok, detail: runtime.detail })
+
+      const passed = checks.filter((item) => item.ok).length
+      const status = passed === checks.length ? 'pass' : 'fail'
+      setProductVerification({
+        status,
+        passed,
+        total: checks.length,
+        verifiedAt: new Date().toISOString(),
+        summary: status === 'pass'
+          ? 'Final product verification passed. The generated product is structurally, visually and runtime-ready for the next presentation step.'
+          : 'Verification found one or more issues. Fix or rebuild the generated product before treating it as presentation-ready.',
+        checks,
+      })
+      setNotice(status === 'pass' ? 'Final product verification passed.' : 'Final product verification found issues.')
+      return status === 'pass'
+    } finally {
+      setVerificationBusy(false)
+    }
+  }
+
   const runProductBuild = async () => {
     if (!project.problem.trim()) {
       setProductError('Create a project before building the product.')
@@ -378,6 +458,7 @@ function App() {
       const result = await buildProduct(project, blueprint, analysis, architecture, experience, codePlan, integration, quality, testing, deployment, presentation)
       setGeneratedProduct(result)
       setNotice('Runnable product generated locally from the completed engineering pipeline.')
+      await runProductVerification(result)
     } catch (error) {
       setProductError(error.message)
       setNotice('Runnable product could not be generated.')
@@ -482,7 +563,7 @@ function App() {
           {active === 'architecture' && <Architecture blueprint={blueprint} architecture={architecture} busy={architectureBusy} error={architectureError} runAnalysis={runArchitectureAnalysis} />}
           {active === 'stack' && <TechStack blueprint={blueprint} />}
           {active === 'ux' && <Experience blueprint={blueprint} architecture={architecture} experience={experience} busy={experienceBusy} error={experienceError} runAnalysis={runExperienceAnalysis} />}
-          {active === 'code' && <CodeLab blueprint={blueprint} codePlan={codePlan} busy={codeBusy} error={codeError} runAnalysis={runCodePlanning} generatedProduct={generatedProduct} productBusy={productBusy} productError={productError} runProductBuild={runProductBuild} />}
+          {active === 'code' && <CodeLab blueprint={blueprint} codePlan={codePlan} busy={codeBusy} error={codeError} runAnalysis={runCodePlanning} generatedProduct={generatedProduct} productBusy={productBusy} productError={productError} runProductBuild={runProductBuild} productVerification={productVerification} verificationBusy={verificationBusy} runProductVerification={runProductVerification} />}
           {active === 'integration' && <Integration blueprint={blueprint} architecture={architecture} codePlan={codePlan} integration={integration} busy={integrationBusy} error={integrationError} runAnalysis={runIntegrationAnalysis} />}
           {active === 'debug' && <Debugging debugInput={debugInput} setDebugInput={setDebugInput} result={debugResult} busy={debugBusy} error={debugError} runAnalysis={runDebugAnalysis} />}
           {active === 'quality' && <QualitySecurity quality={quality} busy={qualityBusy} error={qualityError} runAnalysis={runQualityAnalysis} />}
@@ -665,6 +746,7 @@ function ReadinessPanel({ project, created, ollamaHealth, stages }) {
     ['Repository', Boolean(stages.repoOps), 'Generate repository operations.'],
     ['Release', Boolean(stages.deployment), 'Generate the release plan.'],
     ['Presentation', Boolean(stages.presentation), 'Generate the final demo plan.'],
+    ['Final product verification', stages.generatedProductVerification === true, 'Build the runnable product and pass final verification.'],
     ['Local Ollama', ollamaHealth.ok, 'Start Ollama and the local proxy.'],
   ]
   const ready = checks.filter(([, ok]) => ok).length
@@ -900,7 +982,7 @@ function Experience({ blueprint, architecture, experience, busy, error, runAnaly
   )
 }
 
-function CodeLab({ blueprint, codePlan, busy, error, runAnalysis, generatedProduct, productBusy, productError, runProductBuild }) {
+function CodeLab({ blueprint, codePlan, busy, error, runAnalysis, generatedProduct, productBusy, productError, runProductBuild, productVerification, verificationBusy, runProductVerification }) {
   const files = codePlan?.files || [
     { path: 'src/', purpose: 'Application source code' },
     { path: 'src/components/', purpose: 'Reusable UI components' },
@@ -944,6 +1026,33 @@ function CodeLab({ blueprint, codePlan, busy, error, runAnalysis, generatedProdu
               <p>{description}</p>
             </div>
           ))}
+        </div>
+      </Card>
+      <Card>
+        <div className="card-heading">
+          <span><ShieldCheck size={17} /> Final Product Verification</span>
+          <Badge color={productVerification?.status === 'pass' ? 'success' : productVerification?.status === 'fail' ? 'danger' : 'warning'}>
+            {productVerification?.status === 'pass' ? 'Verified' : productVerification?.status === 'fail' ? 'Issues found' : 'Pending'}
+          </Badge>
+        </div>
+        <p>{productVerification?.summary || 'The verification gate checks generated structure, interaction depth, visual system, dependency safety and browser runtime behavior.'}</p>
+        {productVerification?.checks?.length > 0 && (
+          <div className="dashboard-grid">
+            {productVerification.checks.map((check) => (
+              <div className="metric-card" key={check.name}>
+                <div className="card-heading">
+                  <span>{check.ok ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}{check.name}</span>
+                  <Badge color={check.ok ? 'success' : 'danger'}>{check.ok ? 'PASS' : 'FAIL'}</Badge>
+                </div>
+                <p>{check.detail}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="hero-actions">
+          <Button onClick={() => runProductVerification()} disabled={!generatedProduct || verificationBusy}>
+            {verificationBusy ? 'Verifying product…' : 'Run Final Verification'} <ShieldCheck size={17} />
+          </Button>
         </div>
       </Card>
       <Card>
