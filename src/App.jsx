@@ -28,7 +28,7 @@ import Button from './components/ui/Button'
 import Card from './components/ui/Card'
 import Badge from './components/ui/Badge'
 import Input from './components/ui/Input'
-import { analyzeProblem, askOllama, isOllamaConfigured } from './services/ollama'
+import { analyzeArchitecture, analyzeProblem, askOllama, isOllamaConfigured } from './services/ollama'
 import './styles/design-system.css'
 
 const navItems = [
@@ -73,6 +73,9 @@ function App() {
   const [analysis, setAnalysis] = useState(null)
   const [analysisBusy, setAnalysisBusy] = useState(false)
   const [analysisError, setAnalysisError] = useState('')
+  const [architecture, setArchitecture] = useState(null)
+  const [architectureBusy, setArchitectureBusy] = useState(false)
+  const [architectureError, setArchitectureError] = useState('')
 
   const blueprint = useMemo(() => buildBlueprint(project, analysis), [project, analysis])
 
@@ -98,6 +101,25 @@ function App() {
       setNotice('Problem analysis could not be completed.')
     } finally {
       setAnalysisBusy(false)
+    }
+  }
+
+  const runArchitectureAnalysis = async () => {
+    if (!project.problem.trim()) {
+      setNotice('Create a project problem before generating architecture.')
+      return
+    }
+    setArchitectureBusy(true)
+    setArchitectureError('')
+    try {
+      const result = await analyzeArchitecture(project, blueprint, analysis)
+      setArchitecture(result)
+      setNotice('Technical Architecture generated from the current blueprint.')
+    } catch (error) {
+      setArchitectureError(error.message)
+      setNotice('Architecture generation could not be completed.')
+    } finally {
+      setArchitectureBusy(false)
     }
   }
 
@@ -188,7 +210,7 @@ function App() {
             <Blueprint blueprint={blueprint} project={project} created={created} analysis={analysis} analysisBusy={analysisBusy} analysisError={analysisError} runAnalysis={runProblemAnalysis} />
           )}
 
-          {active === 'architecture' && <Architecture blueprint={blueprint} />}
+          {active === 'architecture' && <Architecture blueprint={blueprint} architecture={architecture} busy={architectureBusy} error={architectureError} runAnalysis={runArchitectureAnalysis} />}
           {active === 'stack' && <TechStack blueprint={blueprint} />}
           {active === 'tasks' && <Tasks blueprint={blueprint} />}
           {active === 'quality' && <Quality />}
@@ -358,167 +380,49 @@ function Blueprint({ blueprint, project, created, analysis, analysisBusy, analys
   )
 }
 
-function IntelligenceList({ title, items = [] }) {\n  if (!items.length) return null\n  return <div className="intelligence-list"><strong>{title}</strong><ul>{items.map((item, index) => <li key={typeof item === 'string' ? item : index}>{typeof item === 'string' ? item : JSON.stringify(item)}</li>)}</ul></div>\n}\n\nfunction Architecture({ blueprint }) {
+function IntelligenceList({ title, items = [] }) {\n  if (!items.length) return null\n  return <div className="intelligence-list"><strong>{title}</strong><ul>{items.map((item, index) => <li key={typeof item === 'string' ? item : index}>{typeof item === 'string' ? item : JSON.stringify(item)}</li>)}</ul></div>\n}\n\nfunction Architecture({ blueprint, architecture, busy, error, runAnalysis }) {
+  const layers = architecture?.layers || [
+    { name: 'Frontend', technology: 'React + Vite', responsibility: 'User interface, routing, state and user interactions.', connectsTo: ['API Layer'] },
+    { name: 'API Layer', technology: 'REST / Node.js', responsibility: 'Validation, business logic and service orchestration.', connectsTo: ['Database', 'AI Service'] },
+    { name: 'Database', technology: 'PostgreSQL / Supabase', responsibility: 'Persistent application data and relationships.', connectsTo: ['API Layer'] },
+    { name: 'AI Service', technology: 'Ollama', responsibility: 'Local model inference for AI-specific workflows.', connectsTo: ['API Layer'] },
+  ]
   return (
     <>
-      <PageHeader eyebrow="03 / SYSTEM ARCHITECTURE" title="See the system before coding it." description="Use this as the shared technical picture for your team." />
+      <PageHeader eyebrow="03 / SYSTEM ARCHITECTURE" title="Design the system before coding it." description="Generate a problem-specific technical architecture and inspect how every major layer connects." action={<Button onClick={runAnalysis} disabled={busy || !blueprint.problem}>{busy ? 'Designing architecture…' : architecture ? 'Regenerate Architecture' : 'Generate Architecture'} <Network size={17} /></Button>} />
+      {error && <div className="analysis-error" role="alert">{error}</div>}
       <div className="architecture-canvas">
-        <ArchitectureNode icon={Globe2} title="Users / Browser" subtitle="Responsive UI" />
-        <div className="architecture-arrow">↓</div>
-        <ArchitectureNode icon={Code2} title="Frontend" subtitle="React / Vite / UI system" />
-        <div className="architecture-arrow">↓</div>
-        <div className="architecture-row">
-          <ArchitectureNode icon={Server} title="Backend" subtitle="Node.js / API layer" />
-          <ArchitectureNode icon={BrainCircuit} title="AI" subtitle="Ollama / model service" />
-          <ArchitectureNode icon={Database} title="Data" subtitle="SQL / NoSQL / storage" />
+        <div className="architecture-flow">
+          {layers.map((layer, index) => (
+            <div key={layer.name}>
+              <div className="architecture-node architecture-node-rich">
+                <div className="architecture-icon"><Layers3 size={21} /></div>
+                <strong>{layer.name}</strong>
+                <small>{layer.technology}</small>
+                <p>{layer.responsibility}</p>
+                {layer.connectsTo?.length ? <div className="architecture-connections">→ {layer.connectsTo.join(' · ')}</div> : null}
+              </div>
+              {index < layers.length - 1 && <div className="architecture-arrow">↓</div>}
+            </div>
+          ))}
         </div>
-        <div className="architecture-note"><Network size={17} /> Adapt these layers to the actual problem. Current services: {blueprint.services.join(', ')}.</div>
+        <div className="architecture-row">
+          <ArchitectureNode icon={Globe2} title="Users / Browser" subtitle="Responsive experience" />
+          <ArchitectureNode icon={Server} title="Service Boundary" subtitle="APIs + validation" />
+          <ArchitectureNode icon={Database} title="Persistent Data" subtitle="Storage + relationships" />
+          <ArchitectureNode icon={BrainCircuit} title="AI Capability" subtitle="Local model / AI APIs" />
+        </div>
+        {architecture && (
+          <div className="architecture-detail-grid">
+            <Card><div className="card-heading"><span><Network size={17} /> Data flow</span><Badge color="success">Generated</Badge></div><ol className="clean-list">{(architecture.dataFlow || []).map((item) => <li key={item}><ArrowRight size={15} /> {item}</li>)}</ol></Card>
+            <Card><div className="card-heading"><span><ShieldCheck size={17} /> Security boundaries</span></div><ul className="clean-list">{(architecture.security || []).map((item) => <li key={item}><ShieldCheck size={15} /> {item}</li>)}</ul></Card>
+            <Card><div className="card-heading"><span><Zap size={17} /> Failure handling</span></div><ul className="clean-list">{(architecture.failureHandling || []).map((item) => <li key={item}><Activity size={15} /> {item}</li>)}</ul></Card>
+            <Card><div className="card-heading"><span><GitBranch size={17} /> Project structure</span></div><ul className="clean-list">{(architecture.projectStructure || []).map((item) => <li key={item}><Code2 size={15} /> {item}</li>)}</ul></Card>
+          </div>
+        )}
+        <div className="architecture-note"><Network size={17} /> Blueprint services: {blueprint.services.join(', ') || 'Generate a blueprint first.'}</div>
       </div>
     </>
   )
 }
 
-function TechStack({ blueprint }) {
-  return (
-    <>
-      <PageHeader eyebrow="04 / TECHNOLOGY STACK" title="Choose technology for the problem." description="A stack is useful only when each technology has a job." />
-      <div className="stack-grid">
-        {blueprint.stack.map((item) => <Card key={item.name}><div className="stack-icon">{item.icon}</div><h3>{item.name}</h3><p>{item.reason}</p><Badge color="secondary">{item.layer}</Badge></Card>)}
-      </div>
-    </>
-  )
-}
-
-function Tasks({ blueprint }) {
-  return (
-    <>
-      <PageHeader eyebrow="05 / DEVELOPMENT TASKS" title="Turn architecture into team work." description="Use this as the starting backlog. Split tasks among team members." />
-      <div className="task-list">
-        {blueprint.tasks.map((task, index) => <div className="task-row" key={task}><span className="task-check">{index + 1}</span><div><strong>{task}</strong><small>Not started · assign to a team member</small></div><Badge color={index < 2 ? 'primary' : 'secondary'}>{index < 2 ? 'Foundation' : 'Build'}</Badge></div>)}
-      </div>
-    </>
-  )
-}
-
-function LocalAI({ prompt, setPrompt, response, busy, run, configured }) {
-  return (
-    <>
-      <PageHeader eyebrow="06 / LOCAL AI" title="Your local coding intelligence." description="The interface is ready for Ollama. Run models on your own laptop instead of depending on a paid cloud API." />
-      <div className="ai-layout">
-        <Card>
-          <div className="ai-status"><span className={configured ? 'status-dot' : 'status-dot warning'} /> {configured ? 'Ollama endpoint configured' : 'Ollama endpoint: http://localhost:11434'}</div>
-          <h3>Ask your local developer assistant</h3>
-          <textarea className="workstation-textarea ai-input" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Example: Review the architecture for this project and identify missing security requirements." />
-          <Button onClick={run} disabled={busy || !prompt.trim()}>{busy ? 'Thinking…' : 'Run Local AI'} <Zap size={17} /></Button>
-        </Card>
-        <Card>
-          <div className="card-heading"><span><BrainCircuit size={17} /> AI response</span><Badge color="warning">Local</Badge></div>
-          <pre className="ai-response">{response || 'Your local model response will appear here.'}</pre>
-        </Card>
-      </div>
-      <div className="ai-model-grid">
-        <Card><strong>qwen2.5-coder:7b</strong><p>Coding, debugging and implementation assistance.</p></Card>
-        <Card><strong>llama3.1:8b</strong><p>Problem analysis, planning and general reasoning.</p></Card>
-      </div>
-    </>
-  )
-}
-
-function Quality() {
-  return (
-    <>
-      <PageHeader eyebrow="07 / QUALITY GATE" title="Check before you present." description="A professional project is more than a working screen." />
-      <div className="quality-grid">
-        {[
-          ['Accessibility', 'Keyboard navigation, labels, contrast and reduced motion.', ShieldCheck],
-          ['Security', 'Input validation, authentication boundaries and secret handling.', ShieldCheck],
-          ['Performance', 'Bundle size, loading states, images and unnecessary work.', Zap],
-          ['Testing', 'Critical flows, API errors and responsive behavior.', TestTube2],
-          ['Code quality', 'Reusable components, clear naming and maintainable structure.', Code2],
-          ['Demo readiness', 'A reliable 2–5 minute story with a clear problem and result.', Play],
-        ].map(([title, text, Icon]) => <Card key={title}><div className="icon-box"><Icon size={20} /></div><h3>{title}</h3><p>{text}</p></Card>)}
-      </div>
-    </>
-  )
-}
-
-function Deploy() {
-  return (
-    <>
-      <PageHeader eyebrow="08 / SHIP" title="Prepare the release." description="Deployment remains under your control; the workstation organizes the steps." />
-      <div className="release-flow">
-        {[
-          ['Build', 'npm run build'],
-          ['Verify', 'npm run lint + test'],
-          ['Git', 'Commit → branch → pull request'],
-          ['Deploy', 'GitHub Pages / Vercel / Netlify'],
-          ['Domain', 'Configure custom domain when required'],
-          ['Verify', 'Open production URL and test critical flows'],
-        ].map(([title, command], index) => <Card key={title}><span className="pipeline-number">0{index + 1}</span><h3>{title}</h3><code>{command}</code></Card>)}
-      </div>
-    </>
-  )
-}
-
-function Presentation({ project, blueprint }) {
-  return (
-    <>
-      <PageHeader eyebrow="09 / PRESENTATION" title="Tell the story like an engineer." description="Turn your technical work into a clear demo for judges, faculty and teammates." />
-      <div className="presentation-grid">
-        <Card><span className="eyebrow">01 · PROBLEM</span><h2>{project.problem || 'Your problem statement'}</h2><p>Who has this problem and why does it matter?</p></Card>
-        <Card><span className="eyebrow">02 · SOLUTION</span><h2>{project.title || 'Your solution'}</h2><p>Show the core workflow rather than listing every feature.</p></Card>
-        <Card><span className="eyebrow">03 · TECHNICAL</span><h2>{blueprint.stack.slice(0, 3).map((item) => item.name).join(' · ')}</h2><p>Explain why each major technology was selected.</p></Card>
-        <Card><span className="eyebrow">04 · LIVE DEMO</span><h2>Problem → product → result</h2><p>Keep a reliable path through the most valuable user journey.</p></Card>
-      </div>
-    </>
-  )
-}
-
-function BlueprintCard({ title, icon: Icon, items }) {
-  return <Card><div className="card-heading"><span><Icon size={17} /> {title}</span><ArrowRight size={16} /></div><ul className="clean-list">{items.map((item) => <li key={item}><CheckCircle2 size={15} /> {item}</li>)}</ul></Card>
-}
-
-function ArchitectureNode({ icon: Icon, title, subtitle }) {
-  return <div className="architecture-node"><div className="architecture-icon"><Icon size={21} /></div><strong>{title}</strong><small>{subtitle}</small></div>
-}
-
-function Metric({ label, value }) {
-  return <Card><span className="metric-value">{value}</span><span className="metric-label">{label}</span></Card>
-}
-
-function buildBlueprint(project, analysis = null) {
-  const problem = project.problem || 'Define the problem statement to generate a project-specific blueprint.'
-  if (analysis) {
-    return {
-      problem: analysis.problemUnderstanding?.summary || project.problem,
-      features: (analysis.mvpFeatures || []).map((item) => item.name),
-      screens: analysis.recommendedScreens || [],
-      services: analysis.recommendedServices || [],
-      stack: [
-        { name: 'React + Vite', reason: 'Fast component-based frontend for a hackathon web product.', layer: 'Frontend', icon: 'UI' },
-        { name: 'Node.js API', reason: 'A clear service boundary for business logic and integrations.', layer: 'Backend', icon: 'API' },
-        { name: 'PostgreSQL / Supabase', reason: 'Use structured persistence when the problem needs relational data.', layer: 'Data', icon: 'DB' },
-        { name: 'Ollama', reason: 'Local AI capability without a paid model API.', layer: 'AI', icon: 'AI' },
-      ],
-      tasks: (analysis.nextActions || []).map((name, index) => ({ name, owner: index % 2 === 0 ? 'Product / Frontend' : 'Backend / AI', priority: index < 3 ? 'High' : 'Medium' })),
-    }
-  }
-
-  return {
-    problem,
-    features: ['Core user workflow', 'Authentication / role control when required', 'Responsive dashboard or primary experience', 'Validation, error and loading states', 'Analytics or reporting where useful'],
-    screens: ['Landing / entry', 'Authentication', 'Main application workspace', 'Details / workflow screen', 'Settings / profile'],
-    services: ['Frontend application', 'Backend API', 'Database / storage', 'Authentication', 'AI service when useful'],
-    tasks: ['Clarify requirements and success criteria', 'Create project skeleton and design system', 'Build primary user workflow', 'Implement backend/API and data layer', 'Integrate frontend with services', 'Add quality, security and accessibility checks', 'Prepare GitHub, deployment and demo'],
-    stack: [
-      { name: 'React + Vite', layer: 'Frontend', reason: 'Fast component-based development for a modern web interface.', icon: '⚛' },
-      { name: 'Node.js + API', layer: 'Backend', reason: 'A practical JavaScript backend for REST APIs and rapid hackathon iteration.', icon: '⬢' },
-      { name: 'PostgreSQL / Supabase', layer: 'Data', reason: 'Use relational data when the problem needs structured, connected records.', icon: '◈' },
-      { name: 'Ollama', layer: 'AI', reason: 'Run local models for planning and coding assistance without a paid API.', icon: 'AI' },
-      { name: 'Three.js / WebGL', layer: 'Experience', reason: 'Use real-time 3D only when visualization or interaction improves the solution.', icon: '3D' },
-      { name: 'GSAP', layer: 'Motion', reason: 'Create controlled, purposeful interface motion and presentation sequences.', icon: '↗' },
-    ],
-  }
-}
-
-export default App
