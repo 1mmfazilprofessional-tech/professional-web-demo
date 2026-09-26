@@ -116,3 +116,26 @@ The architecture must explicitly consider frontend/backend boundaries, APIs, dat
     throw new Error('The local model returned invalid architecture JSON. Run the architecture generation again.')
   }
 }
+
+
+export async function analyzeExperience(project, blueprint, architecture, analysis = null) {
+  const prompt = [
+    'You are a senior product designer, UX engineer and frontend architect for a hackathon product.',
+    'Design the user experience from the actual project problem, blueprint and architecture.',
+    'Focus on usable flows, responsive behavior, accessibility, meaningful interaction states, and visual/3D/animation opportunities only where they improve the product.',
+    'Return ONLY valid JSON with keys: experiencePrinciples (array), primaryUserFlow (array), screens (array of objects with name,purpose,primaryAction,states), interactionRules (array), accessibility (array), motionAndVisuals (array), failureStates (array).',
+    'Project: ' + JSON.stringify(project),
+    'Blueprint: ' + JSON.stringify(blueprint),
+    'Architecture: ' + JSON.stringify(architecture || {}),
+    'Problem intelligence: ' + JSON.stringify(analysis || {}),
+    'Be specific and implementable. Avoid decorative features that do not support the problem.'
+  ].join('\n')
+  const raw = await generate(prompt)
+  try {
+    return JSON.parse(raw)
+  } catch {
+    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
+    if (fenced) return JSON.parse(fenced[1])
+    throw new Error('The local model returned invalid UX JSON. Run the experience generation again.')
+  }
+}

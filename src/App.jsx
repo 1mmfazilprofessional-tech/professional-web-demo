@@ -10,6 +10,8 @@ import {
   GitBranch,
   Globe2,
   Layers3,
+  Accessibility,
+  MousePointer2,
   LayoutDashboard,
   Menu,
   Network,
@@ -28,7 +30,7 @@ import Button from './components/ui/Button'
 import Card from './components/ui/Card'
 import Badge from './components/ui/Badge'
 import Input from './components/ui/Input'
-import { analyzeArchitecture, analyzeProblem, askOllama, isOllamaConfigured } from './services/ollama'
+import { analyzeArchitecture, analyzeExperience, analyzeProblem, askOllama, isOllamaConfigured } from './services/ollama'
 import './styles/design-system.css'
 
 const navItems = [
@@ -37,6 +39,7 @@ const navItems = [
   ['blueprint', 'Blueprint', Boxes],
   ['architecture', 'Architecture', Network],
   ['stack', 'Tech Stack', Layers3],
+  ['ux', 'Experience', Globe2],
   ['tasks', 'Tasks', CheckCircle2],
   ['ai', 'Local AI', BrainCircuit],
   ['quality', 'Quality', ShieldCheck],
@@ -76,6 +79,9 @@ function App() {
   const [architecture, setArchitecture] = useState(null)
   const [architectureBusy, setArchitectureBusy] = useState(false)
   const [architectureError, setArchitectureError] = useState('')
+  const [experience, setExperience] = useState(null)
+  const [experienceBusy, setExperienceBusy] = useState(false)
+  const [experienceError, setExperienceError] = useState('')
 
   const blueprint = useMemo(() => buildBlueprint(project, analysis), [project, analysis])
 
@@ -121,6 +127,14 @@ function App() {
     } finally {
       setArchitectureBusy(false)
     }
+  }
+
+  const runExperienceAnalysis = async () => {
+    if (!project.problem.trim()) { setNotice('Create a project problem before designing the experience.'); return }
+    setExperienceBusy(true); setExperienceError('')
+    try { setExperience(await analyzeExperience(project, blueprint, architecture, analysis)); setNotice('UI/UX and experience plan generated.') }
+    catch (error) { setExperienceError(error.message); setNotice('Experience design could not be completed.') }
+    finally { setExperienceBusy(false) }
   }
 
   const createProject = (event) => {
@@ -212,6 +226,7 @@ function App() {
 
           {active === 'architecture' && <Architecture blueprint={blueprint} architecture={architecture} busy={architectureBusy} error={architectureError} runAnalysis={runArchitectureAnalysis} />}
           {active === 'stack' && <TechStack blueprint={blueprint} />}
+          {active === 'ux' && <Experience blueprint={blueprint} architecture={architecture} experience={experience} busy={experienceBusy} error={experienceError} runAnalysis={runExperienceAnalysis} />}
           {active === 'tasks' && <Tasks blueprint={blueprint} />}
           {active === 'quality' && <Quality />}
           {active === 'deploy' && <Deploy />}
@@ -422,6 +437,27 @@ function IntelligenceList({ title, items = [] }) {\n  if (!items.length) return 
         )}
         <div className="architecture-note"><Network size={17} /> Blueprint services: {blueprint.services.join(', ') || 'Generate a blueprint first.'}</div>
       </div>
+    </>
+  )
+}
+
+function Experience({ blueprint, architecture, experience, busy, error, runAnalysis }) {
+  const screens = experience?.screens || blueprint.screens.map((name) => ({ name, purpose: 'Deliver the relevant user workflow.', primaryAction: 'Continue', states: ['Loading', 'Empty', 'Success', 'Error'] }))
+  return (
+    <>
+      <PageHeader eyebrow="04 / EXPERIENCE ENGINE" title="Design the product people will actually use." description="Turn the blueprint and architecture into user flows, screen behavior, interaction states and purposeful visual experiences." action={<Button onClick={runAnalysis} disabled={busy || !blueprint.problem}>{busy ? 'Designing experience…' : experience ? 'Regenerate Experience' : 'Design Experience'} <Globe2 size={17} /></Button>} />
+      {error && <div className="analysis-error" role="alert">{error}</div>}
+      {experience && <div className="experience-summary"><Badge color="success">Generated</Badge><h2>{experience.experiencePrinciples?.join(' · ')}</h2><p>{experience.primaryUserFlow?.join(' → ')}</p></div>}
+      <div className="experience-grid">{screens.map((screen) => (
+        <Card key={screen.name}><div className="card-heading"><span><LayoutDashboard size={17} /> {screen.name}</span><Badge color="secondary">Screen</Badge></div><p>{screen.purpose}</p><div className="experience-meta"><strong>Primary action</strong><span>{screen.primaryAction}</span></div><IntelligenceList title="States" items={screen.states} /></Card>
+      ))}</div>
+      {experience && <div className="experience-detail-grid">
+        <Card><div className="card-heading"><span><MousePointer2 size={17} /> Interaction rules</span></div><IntelligenceList items={experience.interactionRules} /></Card>
+        <Card><div className="card-heading"><span><Accessibility size={17} /> Accessibility</span></div><IntelligenceList items={experience.accessibility} /></Card>
+        <Card><div className="card-heading"><span><Zap size={17} /> Motion & advanced visuals</span></div><IntelligenceList items={experience.motionAndVisuals} /></Card>
+        <Card><div className="card-heading"><span><ShieldCheck size={17} /> UX failure states</span></div><IntelligenceList items={experience.failureStates} /></Card>
+      </div>}
+      <div className="experience-note"><Sparkles size={17} /> Architecture-aware: {architecture ? `${architecture.layers?.length || 0} system layers considered.` : 'Generate architecture first for deeper UX decisions.'}</div>
     </>
   )
 }
