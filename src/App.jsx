@@ -28,7 +28,7 @@ import Button from './components/ui/Button'
 import Card from './components/ui/Card'
 import Badge from './components/ui/Badge'
 import Input from './components/ui/Input'
-import { askOllama, isOllamaConfigured } from './services/ollama'
+import { analyzeProblem, askOllama, isOllamaConfigured } from './services/ollama'
 import './styles/design-system.css'
 
 const navItems = [
@@ -70,6 +70,9 @@ function App() {
   const [aiResponse, setAiResponse] = useState('')
   const [aiBusy, setAiBusy] = useState(false)
   const [notice, setNotice] = useState('')
+  const [analysis, setAnalysis] = useState(null)
+  const [analysisBusy, setAnalysisBusy] = useState(false)
+  const [analysisError, setAnalysisError] = useState('')
 
   const blueprint = useMemo(() => buildBlueprint(project), [project])
 
@@ -77,6 +80,25 @@ function App() {
     setActive(section)
     setMenuOpen(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const runProblemAnalysis = async () => {
+    if (!project.problem.trim()) {
+      setNotice('Add a problem statement before running intelligence analysis.')
+      return
+    }
+    setAnalysisBusy(true)
+    setAnalysisError('')
+    try {
+      const result = await analyzeProblem(project)
+      setAnalysis(result)
+      setNotice('Problem Intelligence completed. The blueprint is now based on your project analysis.')
+    } catch (error) {
+      setAnalysisError(error.message)
+      setNotice('Problem analysis could not be completed.')
+    } finally {
+      setAnalysisBusy(false)
+    }
   }
 
   const createProject = (event) => {
@@ -163,7 +185,7 @@ function App() {
           )}
 
           {active === 'blueprint' && (
-            <Blueprint blueprint={blueprint} project={project} created={created} />
+            <Blueprint blueprint={blueprint} project={project} created={created} analysis={analysis} analysisBusy={analysisBusy} analysisError={analysisError} runAnalysis={runProblemAnalysis} />
           )}
 
           {active === 'architecture' && <Architecture blueprint={blueprint} />}
@@ -295,14 +317,35 @@ function ProjectForm({ project, setProject, onSubmit }) {
   )
 }
 
-function Blueprint({ blueprint, project, created }) {
+function Blueprint({ blueprint, project, created, analysis, analysisBusy, analysisError, runAnalysis }) {
   return (
     <>
       <PageHeader eyebrow="02 / PROJECT BLUEPRINT" title={created ? project.title || 'Project Blueprint' : 'Project Blueprint'} description="A structured plan that turns the problem into engineering decisions." />
+      <div className="intelligence-panel">
+        <div>
+          <Badge color="primary"><BrainCircuit size={14} /> Problem Intelligence Engine</Badge>
+          <h2>Challenge the problem before building the solution.</h2>
+          <p>Use local AI to identify root causes, users, risks, edge cases, MVP scope and differentiated opportunities. The result becomes the source for the next engineering stages.</p>
+        </div>
+        <Button onClick={runAnalysis} disabled={analysisBusy || !project.problem.trim()}>
+          {analysisBusy ? 'Analyzing problem…' : analysis ? 'Re-analyze Problem' : 'Analyze Problem'} <Sparkles size={17} />
+        </Button>
+      </div>
+      {analysisError && <div className="analysis-error" role="alert">{analysisError}</div>}
+      {analysis && (
+        <div className="intelligence-grid">
+          <Card><div className="card-heading"><span><Sparkles size={17} /> Problem understanding</span><Badge color="success">AI analyzed</Badge></div><p>{analysis.problemUnderstanding?.summary}</p><IntelligenceList title="Root causes" items={analysis.problemUnderstanding?.rootCauses} /><IntelligenceList title="Risks" items={analysis.problemUnderstanding?.risks} /></Card>
+          <Card><div className="card-heading"><span><Boxes size={17} /> MVP features</span></div><ul className="clean-list">{(analysis.mvpFeatures || []).map((item) => <li key={item.name}><CheckCircle2 size={15} /> <span><strong>{item.name}</strong> — {item.reason}</span></li>)}</ul></Card>
+          <Card><div className="card-heading"><span><Zap size={17} /> Innovation opportunities</span></div><ul className="clean-list">{(analysis.innovations || []).map((item) => <li key={item.name}><Sparkles size={15} /> <span><strong>{item.name}</strong> — {item.value} <Badge color={item.complexity === 'high' ? 'warning' : 'secondary'}>{item.complexity}</Badge></span></li>)}</ul></Card>
+          <Card><div className="card-heading"><span><ShieldCheck size={17} /> Edge cases & constraints</span></div><IntelligenceList title="Edge cases" items={analysis.edgeCases} /><IntelligenceList title="Constraints" items={analysis.constraints} /></Card>
+          <Card><div className="card-heading"><span><Rocket size={17} /> Recommended next actions</span></div><IntelligenceList items={analysis.nextActions} /></Card>
+          <Card><div className="card-heading"><span><ShieldCheck size={17} /> Avoid for now</span><Badge color="warning">Scope control</Badge></div><IntelligenceList items={analysis.avoidForNow} /></Card>
+        </div>
+      )}
       <div className="metric-grid">
-        <Metric label="Features" value={blueprint.features.length} />
-        <Metric label="Screens" value={blueprint.screens.length} />
-        <Metric label="Services" value={blueprint.services.length} />
+        <Metric label="Features" value={analysis?.mvpFeatures?.length || blueprint.features.length} />
+        <Metric label="Screens" value={analysis?.recommendedScreens?.length || blueprint.screens.length} />
+        <Metric label="Services" value={analysis?.recommendedServices?.length || blueprint.services.length} />
         <Metric label="Delivery stages" value={blueprint.tasks.length} />
       </div>
       <div className="blueprint-grid">
@@ -315,7 +358,7 @@ function Blueprint({ blueprint, project, created }) {
   )
 }
 
-function Architecture({ blueprint }) {
+function IntelligenceList({ title, items = [] }) {\n  if (!items.length) return null\n  return <div className="intelligence-list"><strong>{title}</strong><ul>{items.map((item, index) => <li key={typeof item === 'string' ? item : index}>{typeof item === 'string' ? item : JSON.stringify(item)}</li>)}</ul></div>\n}\n\nfunction Architecture({ blueprint }) {
   return (
     <>
       <PageHeader eyebrow="03 / SYSTEM ARCHITECTURE" title="See the system before coding it." description="Use this as the shared technical picture for your team." />
