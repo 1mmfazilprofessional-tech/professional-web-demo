@@ -4,7 +4,7 @@ const PORT = Number(process.env.PORT || 8787)
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434/api/generate'
 
 const MAX_BODY_BYTES = 2_000_000
-const REQUEST_TIMEOUT_MS = 60_000
+const REQUEST_TIMEOUT_MS = 120_000
 
 const allowedOrigins = new Set([
   'http://localhost:5173',
