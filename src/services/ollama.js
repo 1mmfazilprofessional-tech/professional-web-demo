@@ -64,7 +64,7 @@ async function generate(prompt, model = MODEL, timeoutMs = REQUEST_TIMEOUT_MS) {
 
       lastError = new Error(`Ollama returned HTTP ${response.status}.`)
     } catch (error) {
-      lastError = error?.name === 'AbortError' ? new Error('Local Ollama request timed out after 45 seconds.') : error
+      lastError = error?.name === 'AbortError' ? new Error(`Local Ollama request timed out after ${Math.round(timeoutMs / 1000)} seconds.`) : error
     }
   }
 
@@ -234,36 +234,45 @@ export async function analyzeCodePlan(project, blueprint, architecture, experien
 
 export async function buildProduct(project, blueprint, analysis, architecture, experience, codePlan, integration, quality, testing, deployment, presentation) {
   const prompt = [
-    'You are the implementation agent inside a local developer workstation.',
-    'Build a REAL, runnable MVP for the project below using the completed engineering decisions.',
-    'This is not a plan. Generate the actual product source file.',
-    'Return ONLY the complete contents of index.html. Do not return JSON. Do not use Markdown fences. Do not add commentary before or after the HTML.',
-    'Hard requirements:',
-    '- index.html MUST be a complete standalone browser application.',
-    '- Put CSS and JavaScript inside index.html so it runs immediately when opened without npm, a server, external libraries or network access.',
-    '- Implement the actual core user journey, not a mockup or static screenshot.',
-    '- Make all important controls functional.',
-    '- Use local browser state when persistence is useful.',
-    '- Include responsive mobile/desktop layout and accessible labels.',
-    '- Include useful empty, success and error states where relevant.',
-    '- Do not use fake buttons, placeholder lorem ipsum, TODO markers or claims that features exist when they do not.',
-    '- Do not load external scripts, fonts, APIs, images or CDNs.',
-    '- Keep the MVP appropriate for the stated hackathon duration.',
-    '- If the architecture contains unnecessary backend/database/AI infrastructure for this problem, prefer the smallest working browser implementation while preserving the core outcome.',
-    '- Keep the generated HTML reasonably compact so it can be returned reliably by the local model.',
+    'You are the principal product engineer responsible for shipping the final product from this developer workstation.',
+    'The workstation has already completed problem intelligence, product blueprint, architecture, UX, implementation planning, integration, quality, testing, release and presentation analysis.',
+    'Now BUILD THE ACTUAL PRODUCT. This output is the final user-facing MVP, not a plan, explanation, wireframe, text report or proof-of-concept.',
+    'Quality bar: a polished professional web product suitable for a college presentation, hackathon demo and portfolio. It should feel intentionally designed and comparable in finish to a serious showcase website, not like a beginner HTML exercise.',
+    'Use the supplied UX and engineering context as requirements. Do not ignore it.',
+    'Return ONLY the complete contents of index.html. No JSON, no Markdown fences, no commentary before or after the HTML.',
+    'PRODUCT QUALITY REQUIREMENTS:',
+    '- Create a strong visual hierarchy, premium typography, deliberate spacing, polished cards/sections, responsive navigation and clear primary actions.',
+    '- Build a cohesive design system with CSS variables, surfaces, borders, shadows, states and consistent component styling.',
+    '- Make the product feel like a real application: meaningful content, useful empty/loading/success/error states, responsive behavior and clear feedback after actions.',
+    '- Implement the complete critical user journey from the testing plan. Every important button/control must actually work.',
+    '- Use localStorage or IndexedDB when the product needs client-side persistence.',
+    '- Include subtle, purposeful transitions and micro-interactions. Use CSS animation, SVG, Canvas or CSS 3D when they materially improve the product.',
+    '- If the UX plan calls for a visual hero, dashboard, data visualization, interactive card, timeline, 3D-like presentation or other rich experience, actually implement an appropriate browser-native version rather than replacing it with a text description.',
+    '- For products that genuinely benefit from 3D, prefer lightweight CSS 3D/SVG/Canvas techniques that work standalone. Do not fake a 3D feature with a static paragraph.',
+    '- Do not add decorative complexity that conflicts with the problem, but do not deliberately simplify the UI merely to make generation easier.',
+    '- Make mobile and desktop layouts intentionally designed, not merely stacked.',
+    '- Include accessible labels, keyboard-friendly controls, visible focus states and sufficient semantic structure.',
+    '- Do not use lorem ipsum, TODOs, fake buttons, dead controls, placeholder screenshots or claims that an unimplemented feature exists.',
+    '- Do not require npm, a server, build tooling or external network access for the preview. Put CSS and JavaScript inline.',
+    '- Do not load external scripts, fonts, APIs, images or CDNs. Use CSS/SVG/Canvas/native browser APIs for visuals.',
+    '- Keep the result reasonably compact, but prioritize product quality over producing a bare-minimum page.',
+    '- Do not copy the BMW website or any other reference literally. Use its level of polish, cinematic presentation and interaction quality only as a quality reference when appropriate.',
+    '- Do not invent backend/database/auth/AI requirements when the architecture says they are unnecessary.',
+    'PROJECT AND ENGINEERING CONTEXT:',
     'Project: ' + JSON.stringify(project),
     'Blueprint: ' + JSON.stringify(blueprint),
     'Problem intelligence: ' + JSON.stringify(analysis || {}),
     'Architecture: ' + JSON.stringify(architecture || {}),
-    'Experience: ' + JSON.stringify(experience || {}),
+    'Experience/UX: ' + JSON.stringify(experience || {}),
     'Code plan: ' + JSON.stringify(codePlan || {}),
-    'Integration: ' + JSON.stringify(integration || {}),
-    'Quality: ' + JSON.stringify(quality || {}),
-    'Testing: ' + JSON.stringify(testing || {}),
-    'Deployment: ' + JSON.stringify(deployment || {}),
-    'Presentation: ' + JSON.stringify(presentation || {}),
-    'Return the complete runnable HTML now.'
-  ].join('\\n')
+    'Integration review: ' + JSON.stringify(integration || {}),
+    'Quality/security review: ' + JSON.stringify(quality || {}),
+    'Testing strategy: ' + JSON.stringify(testing || {}),
+    'Deployment/release plan: ' + JSON.stringify(deployment || {}),
+    'Presentation/demo plan: ' + JSON.stringify(presentation || {}),
+    'Before returning the HTML, mentally verify that the main journey works and that the result looks like a finished website rather than a generated report.',
+    'Return the complete runnable index.html now.'
+  ].join('\n')
 
   let html = await generate(prompt, MODEL, PRODUCT_REQUEST_TIMEOUT_MS)
   html = html.trim().replace(/^\\x60\\x60\\x60(?:html)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/i, '').trim()
@@ -289,11 +298,11 @@ export async function buildProduct(project, blueprint, analysis, architecture, e
           'Runnable MVP generated locally by DevStation from the completed engineering pipeline.',
           '',
           '## Run',
-          'Open index.html directly in a modern browser. No npm install, server, external library or network connection is required.',
+          'Open index.html in a modern browser. No npm install, server, external library or network connection is required.',
           '',
           '## Verification',
           'Use the product acceptance criteria shown in DevStation and test the main user journey before presenting the product.'
-        ].join('\\n')
+        ].join('\n')
       }
     ],
     runInstructions: [
