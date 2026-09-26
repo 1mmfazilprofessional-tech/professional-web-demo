@@ -237,26 +237,20 @@ export async function buildProduct(project, blueprint, analysis, architecture, e
     'You are the implementation agent inside a local developer workstation.',
     'Build a REAL, runnable MVP for the project below using the completed engineering decisions.',
     'This is not a plan. Generate the actual product source file.',
-    'Return ONLY valid JSON with this exact shape:',
-    '{',
-    '  "productName": "",',
-    '  "files": [{"path":"index.html","content":""},{"path":"README.md","content":""}],',
-    '  "runInstructions": [],',
-    '  "acceptanceCriteria": []',
-    '}',
+    'Return ONLY the complete contents of index.html. Do not return JSON. Do not use Markdown fences. Do not add commentary before or after the HTML.',
     'Hard requirements:',
     '- index.html MUST be a complete standalone browser application.',
     '- Put CSS and JavaScript inside index.html so it runs immediately when opened without npm, a server, external libraries or network access.',
     '- Implement the actual core user journey, not a mockup or static screenshot.',
     '- Make all important controls functional.',
     '- Use local browser state when persistence is useful.',
-    '- Include responsive mobile/desktop layout, accessible labels, loading/empty/success/error states where relevant.',
+    '- Include responsive mobile/desktop layout and accessible labels.',
+    '- Include useful empty, success and error states where relevant.',
     '- Do not use fake buttons, placeholder lorem ipsum, TODO markers or claims that features exist when they do not.',
     '- Do not load external scripts, fonts, APIs, images or CDNs.',
-    '- The README should explain what was generated and how to run index.html.',
     '- Keep the MVP appropriate for the stated hackathon duration.',
     '- If the architecture contains unnecessary backend/database/AI infrastructure for this problem, prefer the smallest working browser implementation while preserving the core outcome.',
-    '- Escape JSON correctly. Do not wrap the response in Markdown fences.',
+    '- Keep the generated HTML reasonably compact so it can be returned reliably by the local model.',
     'Project: ' + JSON.stringify(project),
     'Blueprint: ' + JSON.stringify(blueprint),
     'Problem intelligence: ' + JSON.stringify(analysis || {}),
@@ -268,23 +262,54 @@ export async function buildProduct(project, blueprint, analysis, architecture, e
     'Testing: ' + JSON.stringify(testing || {}),
     'Deployment: ' + JSON.stringify(deployment || {}),
     'Presentation: ' + JSON.stringify(presentation || {}),
-    'Return a polished, complete, genuinely usable MVP.'
-  ].join('\n')
+    'Return the complete runnable HTML now.'
+  ].join('\\n')
 
-  const parsed = parseJsonResponse(await generate(prompt, MODEL, PRODUCT_REQUEST_TIMEOUT_MS), 'product build')
-  const result = validateStructuredResult(parsed, ['productName', 'files', 'runInstructions', 'acceptanceCriteria'], 'product build')
-  if (!Array.isArray(result.files) || result.files.length === 0) {
-    throw new Error('Local AI product build did not return any files.')
+  let html = await generate(prompt, MODEL, PRODUCT_REQUEST_TIMEOUT_MS)
+  html = html.trim().replace(/^\\x60\\x60\\x60(?:html)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/i, '').trim()
+
+  const doctypeIndex = html.toLowerCase().indexOf('<!doctype html>')
+  const htmlIndex = html.toLowerCase().indexOf('<html')
+  if (doctypeIndex > 0) html = html.slice(doctypeIndex)
+  else if (htmlIndex > 0) html = html.slice(htmlIndex)
+
+  if (!html.toLowerCase().includes('<html') || !html.toLowerCase().includes('</html>')) {
+    throw new Error('Local AI product build did not return a complete index.html document.')
   }
-  const files = result.files
-    .filter((file) => file && typeof file.path === 'string' && typeof file.content === 'string')
-    .slice(0, 6)
-  if (!files.some((file) => file.path === 'index.html')) {
-    throw new Error('Local AI product build did not include the required runnable index.html file.')
+
+  return {
+    productName: project.title || 'Generated MVP',
+    files: [
+      { path: 'index.html', content: html },
+      {
+        path: 'README.md',
+        content: [
+          '# ' + (project.title || 'Generated MVP'),
+          '',
+          'Runnable MVP generated locally by DevStation from the completed engineering pipeline.',
+          '',
+          '## Run',
+          'Open index.html directly in a modern browser. No npm install, server, external library or network connection is required.',
+          '',
+          '## Verification',
+          'Use the product acceptance criteria shown in DevStation and test the main user journey before presenting the product.'
+        ].join('\\n')
+      }
+    ],
+    runInstructions: [
+      'Download index.html and README.md.',
+      'Open index.html in a modern browser.',
+      'Test the main user journey and verify the acceptance criteria before presenting.'
+    ],
+    acceptanceCriteria: Array.isArray(testing?.criticalJourneys) && testing.criticalJourneys.length
+      ? testing.criticalJourneys.map((item) => typeof item === 'string' ? item : JSON.stringify(item)).slice(0, 8)
+      : [
+          'The core user journey works from start to finish.',
+          'Important controls produce visible, useful results.',
+          'The product works on desktop and mobile-sized screens.'
+        ]
   }
-  return { ...result, files }
 }
-
 
 export async function analyzeIntegration(project, blueprint, architecture, experience, codePlan) {
   const prompt = [
