@@ -53,8 +53,27 @@ import Button from './components/ui/Button'
 import Card from './components/ui/Card'
 import Badge from './components/ui/Badge'
 import Input from './components/ui/Input'
-import { analyzeArchitecture, analyzeExperience, analyzeCodePlan, analyzeProblem, askOllama, isOllamaConfigured } from './services/ollama'
+import { analyzeArchitecture, analyzeExperience, analyzeCodePlan, analyzeProblem, askOllama, checkOllamaHealth, isOllamaConfigured } from './services/ollama'
 import './styles/design-system.css'
+
+const WORKSPACE_STORAGE_KEY = 'devstation.workspace.v1'
+
+function loadWorkspace() {
+  try {
+    const raw = window.localStorage.getItem(WORKSPACE_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function saveWorkspace(snapshot) {
+  try {
+    window.localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(snapshot))
+  } catch {
+    // Storage can be unavailable in private/restricted browser contexts.
+  }
+}
 
 const navItems = [
   ['dashboard', 'Dashboard', LayoutDashboard],
@@ -85,9 +104,9 @@ const stageItems = [
 ]
 
 function App() {
-  const [active, setActive] = useState('dashboard')
+  const [active, setActive] = useState(() => loadWorkspace()?.active || 'dashboard')
   const [menuOpen, setMenuOpen] = useState(false)
-  const [project, setProject] = useState({
+  const [project, setProject] = useState(() => loadWorkspace()?.project || {
     title: '',
     problem: '',
     users: '',
@@ -96,7 +115,8 @@ function App() {
     teamSize: '4',
     constraints: '',
   })
-  const [created, setCreated] = useState(false)
+  const [created, setCreated] = useState(() => Boolean(loadWorkspace()?.created))
+  const [ollamaHealth, setOllamaHealth] = useState({ ok: false, model: 'qwen2.5-coder:7b', error: 'Not checked yet.' })
   const [aiPrompt, setAiPrompt] = useState('')
   const [aiResponse, setAiResponse] = useState('')
   const [aiBusy, setAiBusy] = useState(false)
@@ -137,6 +157,30 @@ function App() {
   const [presentationError, setPresentationError] = useState('')
 
   const blueprint = useMemo(() => buildBlueprint(project, analysis), [project, analysis])
+
+  useMemo(() => {
+    saveWorkspace({
+      active,
+      project,
+      created,
+      analysis,
+      architecture,
+      experience,
+      codePlan,
+      integration,
+      debugInput,
+      debugResult,
+      quality,
+      testing,
+      repoOps,
+      deployment,
+      presentation,
+    })
+  }, [active, project, created, analysis, architecture, experience, codePlan, integration, debugInput, debugResult, quality, testing, repoOps, deployment, presentation])
+
+  useMemo(() => {
+    checkOllamaHealth().then(setOllamaHealth)
+  }, [])
 
   const go = (section) => {
     setActive(section)
@@ -292,7 +336,7 @@ function App() {
 
         <div className="header-status">
           <span><Activity size={15} /> Developer mode</span>
-          <span>{isOllamaConfigured() ? 'Ollama ready' : 'Ollama connector ready'}</span>
+          <span>{ollamaHealth.ok ? `Ollama connected · ${ollamaHealth.model}` : 'Ollama needs local proxy'}</span>
         </div>
 
         <button
@@ -361,7 +405,7 @@ function App() {
               response={aiResponse}
               busy={aiBusy}
               run={runLocalAI}
-              configured={isOllamaConfigured()}
+              configured={ollamaHealth.ok}
             />
           )}
         </main>
@@ -443,6 +487,12 @@ function LocalAI({ prompt, setPrompt, response, busy, run, configured }) {
   return (
     <>
       <PageHeader eyebrow="LOCAL AI" title="Use your laptop's local model." description="Send focused engineering questions to Ollama through the local workstation proxy." />
+      {!configured && (
+        <Card>
+          <div className="card-heading"><span><AlertTriangle size={17} /> Local AI connection</span><Badge color="warning">Needs attention</Badge></div>
+          <p>Start Ollama and run <code>local-ai-proxy/start-proxy.bat</code>, then reload this page. The workstation will not claim the connection is ready until the local proxy responds.</p>
+        </Card>
+      )}
       <Card>
         <div className="card-heading"><span><BrainCircuit size={17} /> Ollama</span><Badge color={configured ? 'success' : 'warning'}>{configured ? 'Configured' : 'Not configured'}</Badge></div>
         <textarea className="workstation-textarea" rows="6" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Ask for architecture reasoning, debugging help, implementation guidance, or a critical review..." />
