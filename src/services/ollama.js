@@ -112,6 +112,20 @@ function requireObject(value, key, label) {
   }
 }
 
+function validateStructuredResult(value, requiredKeys, label) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`Local AI \${label} returned an invalid structure.`)
+  }
+
+  for (const key of requiredKeys) {
+    if (!(key in value)) {
+      throw new Error(`Local AI \${label} is missing the \${key} field.`)
+    }
+  }
+
+  return value
+}
+
 export async function askOllama(prompt, project = {}) {
   const context = project.problem ? `Project problem: ${project.problem}\nProject title: ${project.title || 'Untitled'}` : ''
   return generate(`${context}\n\nUser request: ${prompt}`)
