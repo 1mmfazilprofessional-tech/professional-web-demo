@@ -72,3 +72,47 @@ Be concrete and hackathon-realistic. Prefer a smaller reliable MVP plus a few di
     throw new Error('The local model returned invalid JSON. Run the analysis again.')
   }
 }
+
+
+export async function analyzeArchitecture(project, blueprint, analysis = null) {
+  const prompt = `You are a senior full-stack architect and hackathon engineering lead.
+
+Design a concrete technical architecture for the project below. Use the existing problem intelligence and blueprint. Do not invent unnecessary infrastructure. Optimize for a small team, limited hackathon time, reliability, security and a clear demo.
+
+Return ONLY valid JSON:
+{
+  "layers": [
+    {"name":"","technology":"","responsibility":"","connectsTo":[]}
+  ],
+  "dataFlow": [],
+  "security": [],
+  "failureHandling": [],
+  "projectStructure": []
+}
+
+Project:
+Title: ${project.title || 'Untitled'}
+Problem: ${project.problem}
+Platform: ${project.platform || 'Web application'}
+Duration: ${project.duration || 'Not specified'}
+Team size: ${project.teamSize || 'Not specified'}
+Constraints: ${project.constraints || 'Not specified'}
+
+Blueprint:
+Features: ${JSON.stringify(blueprint.features || [])}
+Screens: ${JSON.stringify(blueprint.screens || [])}
+Services: ${JSON.stringify(blueprint.services || [])}
+
+Problem intelligence:
+${JSON.stringify(analysis || {})}
+
+The architecture must explicitly consider frontend/backend boundaries, APIs, data persistence, authentication if required, AI integrations if useful, validation, error handling, security, and how the pieces communicate. Prefer technologies already selected by the blueprint unless there is a strong reason to change them.`
+  const raw = await generate(prompt)
+  try {
+    return JSON.parse(raw)
+  } catch {
+    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
+    if (fenced) return JSON.parse(fenced[1])
+    throw new Error('The local model returned invalid architecture JSON. Run the architecture generation again.')
+  }
+}
