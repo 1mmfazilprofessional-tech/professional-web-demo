@@ -232,64 +232,100 @@ export async function analyzeCodePlan(project, blueprint, architecture, experien
 }
 
 
+function normalizeGeneratedProductHtml(raw) {
+  let html = String(raw || '').trim()
+  html = html.replace(/^\\x60\\x60\\x60(?:html)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60\\s*$/i, '').trim()
+
+  const doctypeIndex = html.toLowerCase().indexOf('<!doctype html>')
+  const htmlIndex = html.toLowerCase().indexOf('<html')
+  if (doctypeIndex >= 0) html = html.slice(doctypeIndex)
+  else if (htmlIndex >= 0) html = html.slice(htmlIndex)
+
+  const closingIndex = html.toLowerCase().lastIndexOf('</html>')
+  if (closingIndex >= 0) html = html.slice(0, closingIndex + '</html>'.length).trim()
+
+  return html
+}
+
+function productNeedsRefinement(html, project, architecture) {
+  const lower = html.toLowerCase()
+  const scope = JSON.stringify({ project, architecture }).toLowerCase()
+  const authExplicitlyRequired =
+    /(authentication|auth|login|sign up|signup|account)/.test(scope) &&
+    !/(not required|not needed|unnecessary|no authentication|without authentication|no auth|without auth)/.test(scope)
+
+  const looksLikeTemplate =
+    !lower.includes('<style') ||
+    !lower.includes('<script') ||
+    (!lower.includes(':root') && !lower.includes('--')) ||
+    lower.includes('styles.css') ||
+    lower.includes('scripts.js') ||
+    (!authExplicitlyRequired && (lower.includes('sign up') || lower.includes('signup') || lower.includes('login')))
+
+  return looksLikeTemplate
+}
+
 export async function buildProduct(project, blueprint, analysis, architecture, experience, codePlan, integration, quality, testing, deployment, presentation) {
   const prompt = [
-    'You are the principal product engineer responsible for shipping the final product from this developer workstation.',
-    'The workstation has already completed problem intelligence, product blueprint, architecture, UX, implementation planning, integration, quality, testing, release and presentation analysis.',
-    'Now BUILD THE ACTUAL PRODUCT. This output is the final user-facing MVP, not a plan, explanation, wireframe, text report or proof-of-concept.',
-    'Quality bar: a polished professional web product suitable for a college presentation, hackathon demo and portfolio. It should feel intentionally designed and comparable in finish to a serious showcase website, not like a beginner HTML exercise.',
-    'Use the supplied UX and engineering context as requirements. Do not ignore it.',
-    'Return ONLY the complete contents of index.html. No JSON, no Markdown fences, no commentary before or after the HTML.',
-    'PRODUCT QUALITY REQUIREMENTS:',
-    '- Create a strong visual hierarchy, premium typography, deliberate spacing, polished cards/sections, responsive navigation and clear primary actions.',
-    '- Build a cohesive design system with CSS variables, surfaces, borders, shadows, states and consistent component styling.',
-    '- Make the product feel like a real application: meaningful content, useful empty/loading/success/error states, responsive behavior and clear feedback after actions.',
-    '- Implement the complete critical user journey from the testing plan. Every important button/control must actually work.',
-    '- Use localStorage or IndexedDB when the product needs client-side persistence.',
-    '- Include subtle, purposeful transitions and micro-interactions. Use CSS animation, SVG, Canvas or CSS 3D when they materially improve the product.',
-    '- If the UX plan calls for a visual hero, dashboard, data visualization, interactive card, timeline, 3D-like presentation or other rich experience, actually implement an appropriate browser-native version rather than replacing it with a text description.',
-    '- For products that genuinely benefit from 3D, prefer lightweight CSS 3D/SVG/Canvas techniques that work standalone. Do not fake a 3D feature with a static paragraph.',
-    '- Do not add decorative complexity that conflicts with the problem, but do not deliberately simplify the UI merely to make generation easier.',
-    '- Make mobile and desktop layouts intentionally designed, not merely stacked.',
-    '- Include accessible labels, keyboard-friendly controls, visible focus states and sufficient semantic structure.',
-    '- Do not use lorem ipsum, TODOs, fake buttons, dead controls, placeholder screenshots or claims that an unimplemented feature exists.',
-    '- Do not require npm, a server, build tooling or external network access for the preview. Put CSS and JavaScript inline.',
-    '- Do not load external scripts, fonts, APIs, images or CDNs. Use CSS/SVG/Canvas/native browser APIs for visuals.',
-    '- Keep the result reasonably compact, but prioritize product quality over producing a bare-minimum page.',
-    '- Do not copy the BMW website or any other reference literally. Use its level of polish, cinematic presentation and interaction quality only as a quality reference when appropriate.',
-    '- Treat the architecture as a hard product boundary: implement only services and flows justified by it.',
-    '- For a simple single-user browser project, do NOT add login, sign-up, account/profile systems, server dashboards, fake API integrations or settings pages unless the supplied requirements explicitly require them.',
-    '- Never add authentication merely because it makes the page look like a larger application. Product scope must come from the problem, users, constraints and architecture.',
-    '- Do not let navigation labels, placeholder sections or template-style screens replace the actual core experience.',
-    '- The first screen must immediately communicate the product purpose and present the primary action. Avoid generic admin-template layouts unless the product is actually an admin system.',
-    '- Avoid default-looking forms and browser-default controls. Style every visible control, card, navigation element and state as part of the product design system.',
-    '- For small projects, spend the available implementation budget on visual polish, interaction quality and the complete core journey rather than adding unnecessary features.',
-    'PROJECT AND ENGINEERING CONTEXT:',
+    'You are the principal product engineer shipping the final product from this developer workstation.',
+    'Build the ACTUAL final user-facing MVP, not a plan, wireframe, report or template.',
+    'The product must be polished enough for a college presentation, hackathon demo and developer portfolio.',
+    'Return ONLY one complete standalone index.html. No Markdown fences, no commentary, no separate CSS/JS files.',
+    'The HTML must contain all CSS and JavaScript inline and must work when opened directly in a browser without a server or network.',
+    'Follow the problem, architecture and UX exactly. Architecture is a hard boundary; never invent services or screens that are not justified.',
+    'The first screen must clearly communicate the product purpose and expose the main user action.',
+    'Use a deliberate visual system: CSS variables, typography hierarchy, spacing, polished surfaces, responsive layout, styled controls, focus states, hover/active states and purposeful motion.',
+    'Implement the complete core journey and persist state locally when the architecture calls for browser storage.',
+    'Do not use generic admin/auth templates. Do not add login, sign-up, accounts, settings or dashboards unless authentication/account/settings/dashboard behavior is explicitly required by the supplied requirements.',
+    'Do not output references to styles.css, scripts.js, TODOs, lorem ipsum, fake controls or unimplemented features.',
+    'Use CSS/SVG/Canvas/native browser APIs for rich visuals; never depend on external libraries, fonts, images or CDNs.',
+    'Keep the product appropriately scoped, but spend the implementation budget on polish and interaction quality rather than unnecessary features.',
+    'ENGINEERING CONTEXT:',
     'Project: ' + JSON.stringify(project),
     'Blueprint: ' + JSON.stringify(blueprint),
     'Problem intelligence: ' + JSON.stringify(analysis || {}),
     'Architecture: ' + JSON.stringify(architecture || {}),
     'Experience/UX: ' + JSON.stringify(experience || {}),
     'Code plan: ' + JSON.stringify(codePlan || {}),
-    'Integration review: ' + JSON.stringify(integration || {}),
-    'Quality/security review: ' + JSON.stringify(quality || {}),
-    'Testing strategy: ' + JSON.stringify(testing || {}),
-    'Deployment/release plan: ' + JSON.stringify(deployment || {}),
-    'Presentation/demo plan: ' + JSON.stringify(presentation || {}),
-    'Before returning the HTML, mentally verify that the main journey works and that the result looks like a finished website rather than a generated report.',
-    'Return the complete runnable index.html now.'
-  ].join('\n')
+    'Integration: ' + JSON.stringify(integration || {}),
+    'Quality/security: ' + JSON.stringify(quality || {}),
+    'Testing: ' + JSON.stringify(testing || {}),
+    'Release: ' + JSON.stringify(deployment || {}),
+    'Presentation: ' + JSON.stringify(presentation || {}),
+    'Final check: the result must look and behave like a finished product, not generated documentation.',
+    'Return the complete index.html now.'
+  ].join('\\n')
 
-  let html = await generate(prompt, MODEL, PRODUCT_REQUEST_TIMEOUT_MS)
-  html = html.trim().replace(/^```(?:html)?\s*/i, '').replace(/\s*```$/i, '').trim()
-
-  const doctypeIndex = html.toLowerCase().indexOf('<!doctype html>')
-  const htmlIndex = html.toLowerCase().indexOf('<html')
-  if (doctypeIndex > 0) html = html.slice(doctypeIndex)
-  else if (htmlIndex > 0) html = html.slice(htmlIndex)
+  let html = normalizeGeneratedProductHtml(await generate(prompt, MODEL, PRODUCT_REQUEST_TIMEOUT_MS))
 
   if (!html.toLowerCase().includes('<html') || !html.toLowerCase().includes('</html>')) {
     throw new Error('Local AI product build did not return a complete index.html document.')
+  }
+
+  if (productNeedsRefinement(html, project, architecture)) {
+    const refinementPrompt = [
+      'You are the final UI/product refinement engineer.',
+      'Rewrite the supplied HTML into a polished, functional, self-contained production-quality MVP.',
+      'Preserve the actual problem and required functionality, but remove generic template behavior and unnecessary features.',
+      'If authentication, accounts or settings are not explicitly required by the architecture, remove them completely.',
+      'The first screen must immediately show the product purpose and main action.',
+      'Use inline CSS and JavaScript only. Add a strong visual hierarchy, responsive layout, polished controls, cards/surfaces, useful states, local persistence when appropriate, and subtle purposeful interactions.',
+      'Do not return Markdown, explanations or separate files. Return only complete index.html.',
+      'Project: ' + JSON.stringify(project),
+      'Architecture: ' + JSON.stringify(architecture || {}),
+      'UX: ' + JSON.stringify(experience || {}),
+      'Testing: ' + JSON.stringify(testing || {}),
+      'Current HTML to improve:',
+      html
+    ].join('\\n')
+
+    const refined = normalizeGeneratedProductHtml(
+      await generate(refinementPrompt, MODEL, PRODUCT_REQUEST_TIMEOUT_MS)
+    )
+
+    if (refined.toLowerCase().includes('<html') && refined.toLowerCase().includes('</html>')) {
+      html = refined
+    }
   }
 
   return {
@@ -308,7 +344,7 @@ export async function buildProduct(project, blueprint, analysis, architecture, e
           '',
           '## Verification',
           'Use the product acceptance criteria shown in DevStation and test the main user journey before presenting the product.'
-        ].join('\n')
+        ].join('\\n')
       }
     ],
     runInstructions: [
@@ -325,7 +361,6 @@ export async function buildProduct(project, blueprint, analysis, architecture, e
         ]
   }
 }
-
 export async function analyzeIntegration(project, blueprint, architecture, experience, codePlan) {
   const prompt = [
     'You are a senior integration engineer and reliability-focused hackathon technical lead.',
