@@ -3,13 +3,16 @@ import http from 'node:http'
 const PORT = Number(process.env.PORT || 8787)
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434/api/generate'
 
+const MAX_BODY_BYTES = 2_000_000
+const REQUEST_TIMEOUT_MS = 60_000
+
 const allowedOrigins = new Set([
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'https://1mmfazilprofessional-tech.github.io',
 ])
 
-function sendJson(res, status, body, origin = '*') {
+function sendJson(res, status, body, origin) {
   const payload = JSON.stringify(body)
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
@@ -23,7 +26,7 @@ function sendJson(res, status, body, origin = '*') {
 
 const server = http.createServer(async (req, res) => {
   const origin = req.headers.origin
-  const corsOrigin = origin && allowedOrigins.has(origin) ? origin : 'null'
+  const corsOrigin = origin && allowedOrigins.has(origin) ? origin : null
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
@@ -48,24 +51,34 @@ const server = http.createServer(async (req, res) => {
 
   let raw = ''
   req.setEncoding('utf8')
+  let rejected = false
   req.on('data', (chunk) => {
     raw += chunk
-    if (raw.length > 2_000_000) req.destroy()
+    if (Buffer.byteLength(raw, 'utf8') > MAX_BODY_BYTES && !rejected) {
+      rejected = true
+      sendJson(res, 413, { error: 'Request body is too large.' }, corsOrigin)
+      req.destroy()
+    }
   })
 
   req.on('end', async () => {
     try {
+      if (rejected) return
       const payload = JSON.parse(raw || '{}')
       if (!payload.model || !payload.prompt) {
         sendJson(res, 400, { error: 'model and prompt are required' }, corsOrigin)
         return
       }
 
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
       const response = await fetch(OLLAMA_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...payload, stream: false }),
+        signal: controller.signal,
       })
+      clearTimeout(timeout)
 
       const text = await response.text()
       res.writeHead(response.status, {
@@ -77,7 +90,7 @@ const server = http.createServer(async (req, res) => {
       })
       res.end(text)
     } catch (error) {
-      sendJson(res, 502, {
+      sendJson(res, error?.name === 'AbortError' ? 504 : 502, {
         error: 'Cannot reach local Ollama.',
         detail: error instanceof Error ? error.message : String(error),
       }, corsOrigin)
