@@ -1064,4 +1064,12 @@ function PresentationDemo({ presentation, busy, error, runAnalysis }) {
   )
 }
 
-function AppWithRecovery() {\n  return (\n    <AppErrorBoundary>\n      <App />\n    </AppErrorBoundary>\n  )\n}\n\nexport default AppWithRecovery
+function AppWithRecovery() {
+  return (
+    <AppErrorBoundary>
+      <App />
+    </AppErrorBoundary>
+  )
+}
+
+export default AppWithRecovery
