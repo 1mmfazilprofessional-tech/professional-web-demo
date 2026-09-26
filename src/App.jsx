@@ -832,7 +832,7 @@ function Architecture({ blueprint, architecture, busy, error, runAnalysis }) {
         </div>
         {architecture && (
           <div className="architecture-detail-grid">
-            <Card><div className="card-heading"><span><Network size={17} /> Data flow</span><Badge color="success">Generated</Badge></div><ol className="clean-list">{(architecture.dataFlow || []).map((item) => <li key={item}><ArrowRight size={15} /> {item}</li>)}</ol></Card>
+            <Card><div className="card-heading"><span><Network size={17} /> Data flow</span><Badge color="success">Generated</Badge></div><ol className="clean-list">{(architecture.dataFlow || []).map((item, index) => <li key={typeof item === 'string' ? item : index}><ArrowRight size={15} /> {typeof item === 'string' ? item : item && typeof item === 'object' ? [item.source, item.destination].filter(Boolean).join(' → ') + (item.type ? ` · ${item.type}` : '') + (item.description ? ` · ${item.description}` : '') : String(item)}</li>)}</ol></Card>
             <Card><div className="card-heading"><span><ShieldCheck size={17} /> Security boundaries</span></div><ul className="clean-list">{(architecture.security || []).map((item) => <li key={item}><ShieldCheck size={15} /> {item}</li>)}</ul></Card>
             <Card><div className="card-heading"><span><Zap size={17} /> Failure handling</span></div><ul className="clean-list">{(architecture.failureHandling || []).map((item) => <li key={item}><Activity size={15} /> {item}</li>)}</ul></Card>
             <Card><div className="card-heading"><span><GitBranch size={17} /> Project structure</span></div><ul className="clean-list">{(architecture.projectStructure || []).map((item) => <li key={item}><Code2 size={15} /> {item}</li>)}</ul></Card>
