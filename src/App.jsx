@@ -618,6 +618,42 @@ function PageHeader({ eyebrow, title, description, action }) {
   )
 }
 
+function ReadinessPanel({ project, created, ollamaHealth, stages }) {
+  const checks = [
+    ['Project created', created && Boolean(project.problem.trim()), 'Create a project first.'],
+    ['Problem intelligence', Boolean(stages.analysis), 'Run Problem Intelligence.'],
+    ['Architecture', Boolean(stages.architecture), 'Generate architecture after analysis.'],
+    ['Experience', Boolean(stages.experience), 'Generate the experience plan.'],
+    ['Code plan', Boolean(stages.codePlan), 'Generate the code plan.'],
+    ['Integration', Boolean(stages.integration), 'Run the integration review.'],
+    ['Quality', Boolean(stages.quality), 'Run Quality & Security.'],
+    ['Testing', Boolean(stages.testing), 'Generate the testing plan.'],
+    ['Repository', Boolean(stages.repoOps), 'Generate repository operations.'],
+    ['Release', Boolean(stages.deployment), 'Generate the release plan.'],
+    ['Presentation', Boolean(stages.presentation), 'Generate the final demo plan.'],
+    ['Local Ollama', ollamaHealth.ok, 'Start Ollama and the local proxy.'],
+  ]
+  const ready = checks.filter(([, ok]) => ok).length
+  const complete = ready === checks.length
+  return (
+    <Card>
+      <div className="card-heading">
+        <span><ShieldCheck size={17} /> Pre-demo readiness</span>
+        <Badge color={complete ? 'success' : 'warning'}>{ready}/{checks.length} checks ready</Badge>
+      </div>
+      <p>{complete ? 'All planned workstation stages and local AI connectivity are ready for the final walkthrough.' : 'Readiness tracks completed planning stages and local connectivity. It does not claim that generated plans or deployed product behavior have been executed.'}</p>
+      <div className="dashboard-grid">
+        {checks.map(([name, ok, fallback]) => (
+          <div key={name} className="metric-card">
+            <div className="card-heading"><span>{ok ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}{name}</span></div>
+            <p>{ok ? 'Ready.' : fallback}</p>
+          </div>
+        ))}
+      </div>
+    </Card>
+  )
+}
+
 function Dashboard({ project, created, go }) {
   return (
     <>
@@ -651,7 +687,13 @@ function Dashboard({ project, created, go }) {
         </div>
       </div>
 
-      <div className="section-title-row"><h2>Engineering pipeline</h2><span>6 stages</span></div>
+      <div className="section-title-row"><h2>Engineering pipeline</h2><span>12 stages</span></div>
+      <ReadinessPanel
+        project={project}
+        created={created}
+        ollamaHealth={ollamaHealth}
+        stages={{ analysis, architecture, experience, codePlan, integration, quality, testing, repoOps, deployment, presentation }}
+      />
       <div className="pipeline-grid">
         {stageItems.map(([name, description], index) => (
           <Card key={name}>
