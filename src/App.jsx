@@ -42,6 +42,7 @@ const navItems = [
   ['ux', 'Experience', Globe2],
   ['code', 'Code Lab', Code2],
   ['integration', 'Integration', Network],
+  ['debug', 'Debugging', Bug],
   ['tasks', 'Tasks', CheckCircle2],
   ['ai', 'Local AI', BrainCircuit],
   ['quality', 'Quality', ShieldCheck],
@@ -90,6 +91,10 @@ function App() {
   const [integration, setIntegration] = useState(null)
   const [integrationBusy, setIntegrationBusy] = useState(false)
   const [integrationError, setIntegrationError] = useState('')
+  const [debugInput, setDebugInput] = useState('')
+  const [debugResult, setDebugResult] = useState(null)
+  const [debugBusy, setDebugBusy] = useState(false)
+  const [debugError, setDebugError] = useState('')
 
   const blueprint = useMemo(() => buildBlueprint(project, analysis), [project, analysis])
 
@@ -159,6 +164,14 @@ function App() {
     try { setIntegration(await analyzeIntegration(project, blueprint, architecture, experience, codePlan)); setNotice('Integration map and connection checks generated.') }
     catch (error) { setIntegrationError(error.message); setNotice('Integration analysis could not be completed.') }
     finally { setIntegrationBusy(false) }
+  }
+
+  const runDebugAnalysis = async () => {
+    if (!debugInput.trim()) { setDebugError('Paste an error, stack trace, failing behavior, or test failure first.'); return }
+    setDebugBusy(true); setDebugError('')
+    try { setDebugResult(await analyzeError(debugInput, project, architecture, codePlan, integration)); setNotice('Error intelligence analysis completed.') }
+    catch (error) { setDebugError(error.message); setNotice('Debug analysis could not be completed.') }
+    finally { setDebugBusy(false) }
   }
 
   const createProject = (event) => {
@@ -253,6 +266,7 @@ function App() {
           {active === 'ux' && <Experience blueprint={blueprint} architecture={architecture} experience={experience} busy={experienceBusy} error={experienceError} runAnalysis={runExperienceAnalysis} />}
           {active === 'code' && <CodeLab blueprint={blueprint} architecture={architecture} experience={experience} codePlan={codePlan} busy={codeBusy} error={codeError} runAnalysis={runCodePlanning} />}
           {active === 'integration' && <Integration blueprint={blueprint} architecture={architecture} codePlan={codePlan} integration={integration} busy={integrationBusy} error={integrationError} runAnalysis={runIntegrationAnalysis} />}
+          {active === 'debug' && <Debugging debugInput={debugInput} setDebugInput={setDebugInput} result={debugResult} busy={debugBusy} error={debugError} runAnalysis={runDebugAnalysis} />}
           {active === 'tasks' && <Tasks blueprint={blueprint} />}
           {active === 'quality' && <Quality />}
           {active === 'deploy' && <Deploy />}
@@ -536,6 +550,28 @@ function Integration({ blueprint, architecture, codePlan, integration, busy, err
         <Card><div className="card-heading"><span><RefreshCw size={17} /> Change impact</span></div><IntelligenceList items={integration.changeImpact} /></Card>
       </div>}
       <div className="integration-note"><GitBranch size={17} /> Integration is evaluated against {architecture?.layers?.length || 0} architecture layers and {codePlan?.files?.length || 0} planned code areas.</div>
+    </>
+  )
+}
+
+
+function Debugging({ debugInput, setDebugInput, result, busy, error, runAnalysis }) {
+  return (
+    <>
+      <PageHeader eyebrow="07 / DEBUG INTELLIGENCE" title="Find the cause, not just the error." description="Paste a stack trace, compiler error, failed test, API response or observed bug and let the local model reason through the failure." action={<Button onClick={runAnalysis} disabled={busy || !debugInput.trim()}>{busy ? 'Investigating…' : 'Investigate Error'} <Bug size={17} /></Button>} />
+      <Card>
+        <div className="card-heading"><span><Terminal size={17} /> Failure input</span><Badge color="secondary">Local AI</Badge></div>
+        <textarea className="debug-input" value={debugInput} onChange={(event) => setDebugInput(event.target.value)} placeholder="Paste the error message, stack trace, failing API response, test output, or describe the unexpected behavior…" rows="8" />
+        {error && <div className="analysis-error" role="alert">{error}</div>}
+      </Card>
+      {result && <div className="debug-result-grid">
+        <Card><div className="card-heading"><span><Target size={17} /> Classification</span><Badge color="warning">{result.category || 'Unknown'}</Badge></div><p>{result.summary}</p><div className="debug-kv"><strong>Severity</strong><span>{result.severity}</span><strong>Confidence</strong><span>{result.confidence}</span></div></Card>
+        <Card><div className="card-heading"><span><Search size={17} /> Root-cause hypotheses</span></div><IntelligenceList items={result.rootCauseHypotheses} /></Card>
+        <Card><div className="card-heading"><span><GitBranch size={17} /> Likely affected areas</span></div><IntelligenceList items={result.affectedAreas} /></Card>
+        <Card><div className="card-heading"><span><Wrench size={17} /> Recommended fix</span></div><IntelligenceList items={result.fixPlan} /></Card>
+        <Card><div className="card-heading"><span><TestTube2 size={17} /> Verification</span></div><IntelligenceList items={result.verificationSteps} /></Card>
+        <Card><div className="card-heading"><span><ShieldCheck size={17} /> Regression prevention</span></div><IntelligenceList items={result.regressionPrevention} /></Card>
+      </div>}
     </>
   )
 }
