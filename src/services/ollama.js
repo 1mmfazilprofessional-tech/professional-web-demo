@@ -139,3 +139,26 @@ export async function analyzeExperience(project, blueprint, architecture, analys
     throw new Error('The local model returned invalid UX JSON. Run the experience generation again.')
   }
 }
+
+
+export async function analyzeCodePlan(project, blueprint, architecture, experience) {
+  const prompt = [
+    'You are a senior software architect and implementation lead.',
+    'Create an implementation plan that is concrete enough for a developer or code-generation agent to execute.',
+    'Return ONLY valid JSON with keys: files (array of {path,purpose}), implementationOrder (array), coreInterfaces (array), acceptanceCriteria (array), riskAreas (array), gitCheckpoints (array).',
+    'Do not output source code. Plan the real files, modules, interfaces, integration boundaries and verification points.',
+    'Project: ' + JSON.stringify(project),
+    'Blueprint: ' + JSON.stringify(blueprint),
+    'Architecture: ' + JSON.stringify(architecture || {}),
+    'Experience: ' + JSON.stringify(experience || {}),
+    'Favor simple, maintainable hackathon architecture. Avoid unnecessary infrastructure.'
+  ].join('\n')
+  const raw = await generate(prompt)
+  try {
+    return JSON.parse(raw)
+  } catch {
+    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
+    if (fenced) return JSON.parse(fenced[1])
+    throw new Error('The local model returned invalid code-plan JSON. Run the code plan again.')
+  }
+}
