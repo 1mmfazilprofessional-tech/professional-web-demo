@@ -162,3 +162,28 @@ export async function analyzeCodePlan(project, blueprint, architecture, experien
     throw new Error('The local model returned invalid code-plan JSON. Run the code plan again.')
   }
 }
+
+
+export async function analyzeIntegration(project, blueprint, architecture, experience, codePlan) {
+  const prompt = [
+    'You are a senior integration engineer and reliability-focused hackathon technical lead.',
+    'Trace how the planned frontend, backend, APIs, database, authentication, AI services and code modules connect.',
+    'Identify missing interface contracts, integration risks, verification checks and change impact.',
+    'Return ONLY valid JSON with keys: overallStatus, summary, readyCount, reviewCount, connections (array of {from,to,contract,status}), missingContracts (array), risks (array), verificationChecks (array), changeImpact (array).',
+    'Status values for connections should be Ready, Planned, or Review.',
+    'Do not claim an integration is actually working unless the supplied project evidence supports it. This is an architecture/plan-level check.',
+    'Project: ' + JSON.stringify(project),
+    'Blueprint: ' + JSON.stringify(blueprint),
+    'Architecture: ' + JSON.stringify(architecture || {}),
+    'Experience: ' + JSON.stringify(experience || {}),
+    'Code plan: ' + JSON.stringify(codePlan || {}),
+  ].join('\n')
+  const raw = await generate(prompt)
+  try {
+    return JSON.parse(raw)
+  } catch {
+    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
+    if (fenced) return JSON.parse(fenced[1])
+    throw new Error('The local model returned invalid integration JSON. Run the integration check again.')
+  }
+}

@@ -41,6 +41,7 @@ const navItems = [
   ['stack', 'Tech Stack', Layers3],
   ['ux', 'Experience', Globe2],
   ['code', 'Code Lab', Code2],
+  ['integration', 'Integration', Network],
   ['tasks', 'Tasks', CheckCircle2],
   ['ai', 'Local AI', BrainCircuit],
   ['quality', 'Quality', ShieldCheck],
@@ -86,6 +87,9 @@ function App() {
   const [codePlan, setCodePlan] = useState(null)
   const [codeBusy, setCodeBusy] = useState(false)
   const [codeError, setCodeError] = useState('')
+  const [integration, setIntegration] = useState(null)
+  const [integrationBusy, setIntegrationBusy] = useState(false)
+  const [integrationError, setIntegrationError] = useState('')
 
   const blueprint = useMemo(() => buildBlueprint(project, analysis), [project, analysis])
 
@@ -147,6 +151,14 @@ function App() {
     try { setCodePlan(await analyzeCodePlan(project, blueprint, architecture, experience)); setNotice('Implementation plan generated from the architecture and UX.') }
     catch (error) { setCodeError(error.message); setNotice('Code planning could not be completed.') }
     finally { setCodeBusy(false) }
+  }
+
+  const runIntegrationAnalysis = async () => {
+    if (!project.problem.trim()) { setNotice('Create a project before checking integration.'); return }
+    setIntegrationBusy(true); setIntegrationError('')
+    try { setIntegration(await analyzeIntegration(project, blueprint, architecture, experience, codePlan)); setNotice('Integration map and connection checks generated.') }
+    catch (error) { setIntegrationError(error.message); setNotice('Integration analysis could not be completed.') }
+    finally { setIntegrationBusy(false) }
   }
 
   const createProject = (event) => {
@@ -240,6 +252,7 @@ function App() {
           {active === 'stack' && <TechStack blueprint={blueprint} />}
           {active === 'ux' && <Experience blueprint={blueprint} architecture={architecture} experience={experience} busy={experienceBusy} error={experienceError} runAnalysis={runExperienceAnalysis} />}
           {active === 'code' && <CodeLab blueprint={blueprint} architecture={architecture} experience={experience} codePlan={codePlan} busy={codeBusy} error={codeError} runAnalysis={runCodePlanning} />}
+          {active === 'integration' && <Integration blueprint={blueprint} architecture={architecture} codePlan={codePlan} integration={integration} busy={integrationBusy} error={integrationError} runAnalysis={runIntegrationAnalysis} />}
           {active === 'tasks' && <Tasks blueprint={blueprint} />}
           {active === 'quality' && <Quality />}
           {active === 'deploy' && <Deploy />}
@@ -498,6 +511,31 @@ function CodeLab({ blueprint, architecture, experience, codePlan, busy, error, r
         <Card><div className="card-heading"><span><GitBranch size={17} /> Git checkpoints</span></div><IntelligenceList items={codePlan.gitCheckpoints} /></Card>
       </div>}
       <div className="code-lab-note"><Sparkles size={17} /> This stage plans implementation. The next stage will connect generated implementation tasks to an actual code workspace and integration checks.</div>
+    </>
+  )
+}
+
+
+function Integration({ blueprint, architecture, codePlan, integration, busy, error, runAnalysis }) {
+  const connections = integration?.connections || [
+    { from: 'Frontend', to: 'Backend API', contract: 'HTTP/JSON', status: 'Planned' },
+    { from: 'Backend API', to: 'Database', contract: 'Validated data access', status: 'Planned' },
+    { from: 'Backend API', to: 'AI Service', contract: 'Model request/response', status: 'Planned' },
+    { from: 'Authentication', to: 'Frontend + Backend', contract: 'Session / token boundary', status: 'Review' },
+  ]
+  return (
+    <>
+      <PageHeader eyebrow="06 / INTEGRATION ENGINE" title="Make every part of the system connect correctly." description="Trace interfaces between layers, identify missing contracts and expose integration risks before they become hackathon-day failures." action={<Button onClick={runAnalysis} disabled={busy || !blueprint.problem}>{busy ? 'Checking connections…' : integration ? 'Recheck Integration' : 'Check Integration'} <Network size={17} /></Button>} />
+      {error && <div className="analysis-error" role="alert">{error}</div>}
+      {integration && <div className="integration-score"><div><Badge color={integration.overallStatus === 'Ready' ? 'success' : 'warning'}>{integration.overallStatus || 'Review'}</Badge><h2>{integration.summary}</h2></div><div className="integration-counts"><strong>{integration.readyCount ?? 0}</strong><span>ready</span><strong>{integration.reviewCount ?? 0}</strong><span>review</span></div></div>}
+      <div className="integration-flow">{connections.map((item) => <Card key={item.from + item.to}><div className="integration-connection"><div><strong>{item.from}</strong><small>{item.contract}</small></div><ArrowRight size={20} /><div><strong>{item.to}</strong><Badge color={item.status === 'Ready' ? 'success' : item.status === 'Planned' ? 'secondary' : 'warning'}>{item.status}</Badge></div></div></Card>)}</div>
+      {integration && <div className="integration-detail-grid">
+        <Card><div className="card-heading"><span><AlertTriangle size={17} /> Missing contracts</span></div><IntelligenceList items={integration.missingContracts} /></Card>
+        <Card><div className="card-heading"><span><ShieldCheck size={17} /> Integration risks</span></div><IntelligenceList items={integration.risks} /></Card>
+        <Card><div className="card-heading"><span><TestTube2 size={17} /> Verification checks</span></div><IntelligenceList items={integration.verificationChecks} /></Card>
+        <Card><div className="card-heading"><span><RefreshCw size={17} /> Change impact</span></div><IntelligenceList items={integration.changeImpact} /></Card>
+      </div>}
+      <div className="integration-note"><GitBranch size={17} /> Integration is evaluated against {architecture?.layers?.length || 0} architecture layers and {codePlan?.files?.length || 0} planned code areas.</div>
     </>
   )
 }
