@@ -47,6 +47,7 @@ const navItems = [
   ['testing', 'Testing', TestTube2],
   ['repo', 'Repo & Code Ops', GitBranch],
   ['deploy', 'Release', Rocket],
+  ['present', 'Presentation', Presentation],
   ['tasks', 'Tasks', CheckCircle2],
   ['ai', 'Local AI', BrainCircuit],
   ['quality', 'Quality', ShieldCheck],
@@ -111,6 +112,9 @@ function App() {
   const [deployment, setDeployment] = useState(null)
   const [deploymentBusy, setDeploymentBusy] = useState(false)
   const [deploymentError, setDeploymentError] = useState('')
+  const [presentation, setPresentation] = useState(null)
+  const [presentationBusy, setPresentationBusy] = useState(false)
+  const [presentationError, setPresentationError] = useState('')
 
   const blueprint = useMemo(() => buildBlueprint(project, analysis), [project, analysis])
 
@@ -222,6 +226,14 @@ function App() {
     finally { setDeploymentBusy(false) }
   }
 
+  const runPresentationAnalysis = async () => {
+    if (!project.problem.trim()) { setPresentationError('Create a project before generating the demo plan.'); return }
+    setPresentationBusy(true); setPresentationError('')
+    try { setPresentation(await analyzePresentation(project, blueprint, architecture, experience, quality, testing, deployment)); setNotice('Presentation and demo plan generated.') }
+    catch (error) { setPresentationError(error.message); setNotice('Presentation planning could not be completed.') }
+    finally { setPresentationBusy(false) }
+  }
+
   const createProject = (event) => {
     event.preventDefault()
     if (!project.problem.trim()) {
@@ -319,6 +331,7 @@ function App() {
           {active === 'testing' && <Testing testing={testing} busy={testingBusy} error={testingError} runAnalysis={runTestingAnalysis} />}
           {active === 'repo' && <RepoOps repoOps={repoOps} busy={repoOpsBusy} error={repoOpsError} runAnalysis={runRepoOpsAnalysis} />}
           {active === 'deploy' && <Deployment deployment={deployment} busy={deploymentBusy} error={deploymentError} runAnalysis={runDeploymentAnalysis} />}
+          {active === 'present' && <PresentationDemo presentation={presentation} busy={presentationBusy} error={presentationError} runAnalysis={runPresentationAnalysis} />}
           {active === 'tasks' && <Tasks blueprint={blueprint} />}
           {active === 'quality' && <Quality />}
           {active === 'deploy' && <Deploy />}
@@ -723,6 +736,32 @@ function Deployment({ deployment, busy, error, runAnalysis }) {
         <Card><div className="card-heading"><span><ShieldCheck size={17} /> Release gates</span></div><IntelligenceList items={deployment.releaseGates} /></Card>
       </div>}
       <div className="release-note"><Rocket size={17} /> A release plan is not a deployment claim. The workstation will require actual build and live verification before calling a release ready.</div>
+    </>
+  )
+}
+
+
+function PresentationDemo({ presentation, busy, error, runAnalysis }) {
+  const sections = presentation?.sections || [
+    { name: 'Opening', purpose: 'State the problem, affected users and why it matters.', points: ['Problem in one sentence', 'Target user', 'Measurable impact'] },
+    { name: 'Solution', purpose: 'Show the product solving the problem, not slides describing it.', points: ['Core workflow', 'Key differentiator', 'Outcome'] },
+    { name: 'Technical Story', purpose: 'Explain architecture and engineering decisions briefly.', points: ['Architecture', 'AI / data / APIs', 'Security and reliability'] },
+    { name: 'Live Demo', purpose: 'Demonstrate the strongest critical path with a controlled sequence.', points: ['Happy path', 'One advanced feature', 'Visible result'] },
+  ]
+  return (
+    <>
+      <PageHeader eyebrow="12 / PRESENTATION & DEMO" title="Turn the finished build into a convincing technical story." description="Generate a judge-friendly narrative, live-demo sequence, technical explanation and fallback plan from the actual project." action={<Button onClick={runAnalysis} disabled={busy}>{busy ? 'Building demo plan…' : presentation ? 'Regenerate Demo Plan' : 'Generate Demo Plan'} <Presentation size={17} /></Button>} />
+      {error && <div className="analysis-error" role="alert">{error}</div>}
+      {presentation && <div className="presentation-summary"><div><Badge color="success">Demo plan</Badge><h2>{presentation.coreMessage}</h2></div><div><strong>{presentation.demoMinutes ?? 5}</strong><span> minutes</span></div></div>}
+      <div className="presentation-section-grid">{sections.map((section, index) => <Card key={section.name}><div className="presentation-number">0{index + 1}</div><div className="card-heading"><span><Presentation size={17} /> {section.name}</span></div><p>{section.purpose}</p><IntelligenceList items={section.points} /></Card>)}</div>
+      {presentation && <div className="presentation-detail-grid">
+        <Card><div className="card-heading"><span><PlayCircle size={17} /> Demo sequence</span></div><IntelligenceList items={presentation.demoSequence} /></Card>
+        <Card><div className="card-heading"><span><Sparkles size={17} /> Differentiators</span></div><IntelligenceList items={presentation.differentiators} /></Card>
+        <Card><div className="card-heading"><span><MessageSquare size={17} /> Judge talking points</span></div><IntelligenceList items={presentation.judgeTalkingPoints} /></Card>
+        <Card><div className="card-heading"><span><ShieldAlert size={17} /> Demo fallback</span></div><IntelligenceList items={presentation.fallbackPlan} /></Card>
+        <Card><div className="card-heading"><span><HelpCircle size={17} /> Likely questions</span></div><IntelligenceList items={presentation.likelyQuestions} /></Card>
+        <Card><div className="card-heading"><span><CheckCircle2 size={17} /> Final demo gate</span></div><IntelligenceList items={presentation.finalGate} /></Card>
+      </div>}
     </>
   )
 }

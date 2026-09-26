@@ -312,3 +312,29 @@ export async function analyzeDeployment(project, architecture, integration, qual
     throw new Error('The local model returned invalid deployment JSON. Run the release plan again.')
   }
 }
+
+
+export async function analyzePresentation(project, blueprint, architecture, experience, quality, testing, deployment) {
+  const prompt = [
+    'You are a senior hackathon technical presenter and product demo strategist.',
+    'Create a concise, technically credible presentation and live-demo plan from the supplied project information.',
+    'Focus on demonstrating the real product and engineering decisions. Do not invent features that are not in the supplied context.',
+    'Return ONLY valid JSON with keys: coreMessage, demoMinutes, sections (array of {name,purpose,points}), demoSequence (array), differentiators (array), judgeTalkingPoints (array), fallbackPlan (array), likelyQuestions (array), finalGate (array).',
+    'The demo should prioritize the critical user journey, one strong differentiator, technical credibility, measurable impact and a recovery path if something fails live.',
+    'Project: ' + JSON.stringify(project),
+    'Blueprint: ' + JSON.stringify(blueprint),
+    'Architecture: ' + JSON.stringify(architecture || {}),
+    'Experience: ' + JSON.stringify(experience || {}),
+    'Quality: ' + JSON.stringify(quality || {}),
+    'Testing: ' + JSON.stringify(testing || {}),
+    'Deployment: ' + JSON.stringify(deployment || {})
+  ].join('\n')
+  const raw = await generate(prompt)
+  try {
+    return JSON.parse(raw)
+  } catch {
+    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
+    if (fenced) return JSON.parse(fenced[1])
+    throw new Error('The local model returned invalid presentation JSON. Run the demo-plan generation again.')
+  }
+}
