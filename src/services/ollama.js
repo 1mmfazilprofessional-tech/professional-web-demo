@@ -72,6 +72,46 @@ async function generate(prompt, model = MODEL) {
   )
 }
 
+function parseJsonResponse(raw, label) {
+  if (typeof raw !== 'string' || !raw.trim()) {
+    throw new Error(`Local AI returned an empty ${label} response.`)
+  }
+
+  const cleaned = raw
+    .trim()
+    .replace(/^\`\`\`(?:json)?\s*/i, '')
+    .replace(/\s*\`\`\`$/i, '')
+    .trim()
+
+  try {
+    return JSON.parse(cleaned)
+  } catch {
+    const firstObject = cleaned.indexOf('{')
+    const lastObject = cleaned.lastIndexOf('}')
+    if (firstObject >= 0 && lastObject > firstObject) {
+      try { return JSON.parse(cleaned.slice(firstObject, lastObject + 1)) } catch {}
+    }
+
+    const firstArray = cleaned.indexOf('[')
+    const lastArray = cleaned.lastIndexOf(']')
+    if (firstArray >= 0 && lastArray > firstArray) {
+      try { return JSON.parse(cleaned.slice(firstArray, lastArray + 1)) } catch {}
+    }
+
+    throw new Error(`Local AI returned invalid ${label} JSON. The response was not parseable.`)
+  }
+}
+
+function requireArray(value, key, label) {
+  if (!Array.isArray(value[key])) throw new Error(`Local AI ${label} is missing the ${key} array.`)
+}
+
+function requireObject(value, key, label) {
+  if (!value || typeof value[key] !== 'object' || value[key] === null || Array.isArray(value[key])) {
+    throw new Error(`Local AI ${label} is missing the ${key} object.`)
+  }
+}
+
 export async function askOllama(prompt, project = {}) {
   const context = project.problem ? `Project problem: ${project.problem}\nProject title: ${project.title || 'Untitled'}` : ''
   return generate(`${context}\n\nUser request: ${prompt}`)
