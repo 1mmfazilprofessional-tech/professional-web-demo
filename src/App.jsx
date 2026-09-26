@@ -926,6 +926,27 @@ function CodeLab({ blueprint, codePlan, busy, error, runAnalysis, generatedProdu
         <Sparkles size={17} /> Code Lab first plans implementation. Once the engineering pipeline is complete, DevStation can now build a runnable MVP from those decisions.
       </div>
       <Card>
+        <div className="card-heading"><span><Gauge size={17} /> Final Product Standard</span><Badge color="primary">Build criteria</Badge></div>
+        <p>The final output is judged as a real problem-solving website, not as a template or a planning artifact. These criteria guide the AI builder and refinement pass.</p>
+        <div className="dashboard-grid">
+          {[
+            ['Problem-specific', 'The product directly solves the supplied hackathon problem and targets its stated users.'],
+            ['Real primary journey', 'Users can complete the main workflow instead of only reading information.'],
+            ['Meaningful interactions', 'Core controls actually reveal information, change state, navigate, submit, filter, or perform a useful action.'],
+            ['Product depth', 'Normally 5+ meaningful sections/views and 8+ useful interactive controls when the problem supports that scope.'],
+            ['States & feedback', 'Important loading, empty, success, error, active and completion states are represented where relevant.'],
+            ['Rich visual experience', 'Professional visual hierarchy, responsive layout, purposeful motion and visualizations/diagrams/3D-like treatment when useful.'],
+            ['Honest engineering', 'AI, APIs, authentication, maps, realtime and other integrations are implemented honestly or clearly represented as demo/local behavior; no fake success.'],
+            ['Presentation-ready', 'The result feels like a coherent real product a hackathon team could demonstrate, not an applet, report, generic SaaS shell or decorative landing page.'],
+          ].map(([name, description]) => (
+            <div className="metric-card" key={name}>
+              <div className="card-heading"><span><CheckCircle2 size={15} /> {name}</span></div>
+              <p>{description}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <Card>
         <div className="card-heading"><span><PlayCircle size={17} /> Runnable product</span><Badge color={generatedProduct ? 'success' : 'secondary'}>{generatedProduct ? 'Built' : 'Not built'}</Badge></div>
         <p>Generate an actual browser-runnable MVP from the completed problem, architecture, UX, quality and release decisions. The generated product is saved in this workspace and can be previewed or written to a folder on your computer.</p>
         <div className="hero-actions">
