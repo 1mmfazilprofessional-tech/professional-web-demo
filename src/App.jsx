@@ -25,7 +25,30 @@ import {
   TestTube2,
   X,
   Zap,
-\n  AlertTriangle,\n  Braces,\n  Bug,\n  FileCode2,\n  FolderTree,\n  Gauge,\n  GitCommitHorizontal,\n  HelpCircle,\n  ListChecks,\n  LockKeyhole,\n  MessageSquare,\n  Package,\n  PlayCircle,\n  Presentation,\n  RefreshCw,\n  RotateCcw,\n  Route,\n  Search,\n  ShieldAlert,\n  Target,\n  Terminal,\n  Wrench,\n} from 'lucide-react'
+
+  AlertTriangle,
+  Braces,
+  Bug,
+  FileCode2,
+  FolderTree,
+  Gauge,
+  GitCommitHorizontal,
+  HelpCircle,
+  ListChecks,
+  LockKeyhole,
+  MessageSquare,
+  Package,
+  PlayCircle,
+  Presentation,
+  RefreshCw,
+  RotateCcw,
+  Route,
+  Search,
+  ShieldAlert,
+  Target,
+  Terminal,
+  Wrench,
+} from 'lucide-react'
 import Button from './components/ui/Button'
 import Card from './components/ui/Card'
 import Badge from './components/ui/Badge'
