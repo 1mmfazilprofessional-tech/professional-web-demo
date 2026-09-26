@@ -1,241 +1,465 @@
-import { useLayoutEffect, useRef, useState } from 'react'
-import { ArrowRight, CheckCircle2, Code2, Menu, Monitor, Sparkles, Zap } from 'lucide-react'
-import { gsap } from 'gsap'
-import './styles/design-system.css'
+import { useMemo, useState } from 'react'
+import {
+  Activity,
+  ArrowRight,
+  Boxes,
+  BrainCircuit,
+  CheckCircle2,
+  Code2,
+  Database,
+  GitBranch,
+  Globe2,
+  Layers3,
+  LayoutDashboard,
+  Menu,
+  Network,
+  Play,
+  Rocket,
+  Server,
+  Settings2,
+  ShieldCheck,
+  Sparkles,
+  TerminalSquare,
+  TestTube2,
+  X,
+  Zap,
+} from 'lucide-react'
 import Button from './components/ui/Button'
 import Card from './components/ui/Card'
 import Badge from './components/ui/Badge'
 import Input from './components/ui/Input'
+import { askOllama, isOllamaConfigured } from './services/ollama'
+import './styles/design-system.css'
+
+const navItems = [
+  ['dashboard', 'Dashboard', LayoutDashboard],
+  ['project', 'New Project', Sparkles],
+  ['blueprint', 'Blueprint', Boxes],
+  ['architecture', 'Architecture', Network],
+  ['stack', 'Tech Stack', Layers3],
+  ['tasks', 'Tasks', CheckCircle2],
+  ['ai', 'Local AI', BrainCircuit],
+  ['quality', 'Quality', ShieldCheck],
+  ['deploy', 'Deploy', Rocket],
+  ['present', 'Presentation', Play],
+]
+
+const stageItems = [
+  ['Problem', 'Define the real problem and users.'],
+  ['Blueprint', 'Turn the idea into requirements and features.'],
+  ['Architecture', 'Design frontend, backend, data and APIs.'],
+  ['Build', 'Organize implementation into practical tasks.'],
+  ['Quality', 'Test accessibility, security and performance.'],
+  ['Ship', 'Prepare GitHub, deployment and presentation.'],
+]
 
 function App() {
-  const appRef = useRef(null)
-  const motionRef = useRef(null)
-  const [inputValue, setInputValue] = useState('')
+  const [active, setActive] = useState('dashboard')
   const [menuOpen, setMenuOpen] = useState(false)
-  const [message, setMessage] = useState('')
+  const [project, setProject] = useState({
+    title: '',
+    problem: '',
+    users: '',
+    platform: 'Web application',
+    duration: '48 hours',
+    teamSize: '4',
+    constraints: '',
+  })
+  const [created, setCreated] = useState(false)
+  const [aiPrompt, setAiPrompt] = useState('')
+  const [aiResponse, setAiResponse] = useState('')
+  const [aiBusy, setAiBusy] = useState(false)
+  const [notice, setNotice] = useState('')
 
-  useLayoutEffect(() => {
-    let ctx = gsap.context(() => {
-      const mm = gsap.matchMedia()
-      
-      mm.add("(prefers-reduced-motion: no-preference)", () => {
-        // Orb animation
-        gsap.fromTo(
-          motionRef.current,
-          { y: 18, opacity: 0.45 },
-          { y: -18, opacity: 1, duration: 2, repeat: -1, yoyo: true, ease: 'power1.inOut' }
-        )
+  const blueprint = useMemo(() => buildBlueprint(project), [project])
 
-        // Entrance animations
-        gsap.from('.nav-bar', { y: -15, opacity: 0, duration: 0.6, ease: 'power2.out' })
-        gsap.from('.hero-content > *', {
-          y: 20, opacity: 0, duration: 0.7, stagger: 0.1, ease: 'power2.out', delay: 0.1
-        })
-        gsap.from('.hero-panel', {
-          opacity: 0, scale: 0.96, duration: 0.8, ease: 'power2.out', delay: 0.3
-        })
-        gsap.from('.section', {
-          y: 30, opacity: 0, duration: 0.8, stagger: 0.15, ease: 'power2.out', delay: 0.4
-        })
-      })
-    }, appRef)
+  const go = (section) => {
+    setActive(section)
+    setMenuOpen(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
-    return () => ctx.revert()
-  }, [])
+  const createProject = (event) => {
+    event.preventDefault()
+    if (!project.problem.trim()) {
+      setNotice('Add a problem statement first.')
+      return
+    }
+    setCreated(true)
+    setNotice('Project workspace created locally in this session.')
+    setActive('blueprint')
+  }
 
-  const handleAction = (name) => {
-    setMessage(`${name} selected`)
+  const runLocalAI = async () => {
+    if (!aiPrompt.trim()) return
+    setAiBusy(true)
+    setAiResponse('')
+    try {
+      const response = await askOllama(aiPrompt, project)
+      setAiResponse(response)
+    } catch (error) {
+      setAiResponse(error.message)
+    } finally {
+      setAiBusy(false)
+    }
   }
 
   return (
-    <div className="app-shell" ref={appRef}>
-      <header className="site-header">
-        <div className="container nav-bar">
-          <a className="brand" href="#home">
-            <span className="brand-mark"><Code2 size={18} /></span>
-            <span>ProUI</span>
-          </a>
-
-          <nav className={`nav-links ${menuOpen ? 'open' : ''}`}>
-            <a href="#home">Home</a>
-            <a href="#features">Features</a>
-            <a href="#showcase">Components</a>
-          </nav>
-
-          <div className="nav-actions">
-            <Button variant="secondary" onClick={() => handleAction('GitHub')}>
-              <Code2 size={17} />
-              GitHub
-            </Button>
-
-            <button
-              className="menu-button"
-              type="button"
-              aria-label="Toggle navigation"
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen((value) => !value)}
-            >
-              <Menu size={21} />
-            </button>
-          </div>
+    <div className="workstation-shell">
+      <header className="workstation-header">
+        <div className="workstation-brand">
+          <button className="brand" onClick={() => go('dashboard')} aria-label="Open dashboard">
+            <span className="brand-mark"><TerminalSquare size={18} /></span>
+            <span>DevStation</span>
+          </button>
+          <Badge color="success"><span className="status-dot" /> LOCAL WORKSPACE</Badge>
         </div>
+
+        <div className="header-status">
+          <span><Activity size={15} /> Developer mode</span>
+          <span>{isOllamaConfigured() ? 'Ollama ready' : 'Ollama connector ready'}</span>
+        </div>
+
+        <button
+          className="menu-button"
+          type="button"
+          aria-label="Toggle workstation navigation"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((value) => !value)}
+        >
+          {menuOpen ? <X size={21} /> : <Menu size={21} />}
+        </button>
       </header>
 
-      <main>
-        <section className="hero container" id="home">
-          <div className="hero-content">
-            <Badge color="primary">
-              <Sparkles size={14} />
-              Developer UI System
-            </Badge>
+      <div className="workstation-layout">
+        <aside className={`workstation-sidebar ${menuOpen ? 'open' : ''}`}>
+          <div className="sidebar-label">WORKSPACE</div>
+          {navItems.map(([id, label, Icon]) => (
+            <button
+              key={id}
+              className={`sidebar-item ${active === id ? 'active' : ''}`}
+              onClick={() => go(id)}
+            >
+              <Icon size={17} />
+              <span>{label}</span>
+            </button>
+          ))}
+          <div className="sidebar-divider" />
+          <button className="sidebar-item" onClick={() => setNotice('Settings foundation is ready for future preferences.')}>
+            <Settings2 size={17} />
+            <span>Settings</span>
+          </button>
+        </aside>
 
-            <h1>Build interfaces that feel <span>professionally crafted.</span></h1>
+        <main className="workstation-main">
+          {notice && <div className="workstation-notice" role="status">{notice}</div>}
 
-            <p>
-              A reusable UI foundation for modern developer products,
-              combining responsive design, accessible components and smooth interaction.
-            </p>
+          {active === 'dashboard' && (
+            <Dashboard project={project} created={created} go={go} />
+          )}
 
-            <div className="hero-actions">
-              <Button onClick={() => handleAction('Get Started')}>
-                Get Started <ArrowRight size={17} />
-              </Button>
-              <Button variant="outline" onClick={() => handleAction('Explore Components')}>
-                Explore Components
-              </Button>
-            </div>
+          {active === 'project' && (
+            <ProjectForm project={project} setProject={setProject} onSubmit={createProject} />
+          )}
 
-            <div className="hero-meta">
-              <span><CheckCircle2 size={16} /> Responsive</span>
-              <span><CheckCircle2 size={16} /> Accessible</span>
-              <span><CheckCircle2 size={16} /> React Ready</span>
-            </div>
+          {active === 'blueprint' && (
+            <Blueprint blueprint={blueprint} project={project} created={created} />
+          )}
 
-            {message && <p className="action-message">{message}</p>}
-          </div>
+          {active === 'architecture' && <Architecture blueprint={blueprint} />}
+          {active === 'stack' && <TechStack blueprint={blueprint} />}
+          {active === 'tasks' && <Tasks blueprint={blueprint} />}
+          {active === 'quality' && <Quality />}
+          {active === 'deploy' && <Deploy />}
+          {active === 'present' && <Presentation project={project} blueprint={blueprint} />}
 
-          <div className="hero-panel">
-            <div className="panel-glow" />
-            <div className="hero-panel-content">
-              <Badge color="success">System Online</Badge>
-              <h2>Modern by design.</h2>
-              <p>Reusable foundations ready for your next product.</p>
-
-              <div className="mini-stats">
-                <div>
-                  <strong>04</strong>
-                  <span>UI Components</span>
-                </div>
-                <div>
-                  <strong>100%</strong>
-                  <span>Responsive</span>
-                </div>
-                <div>
-                  <strong>8</strong>
-                  <span>Extendable</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="section container" id="features">
-          <div className="section-heading">
-            <Badge color="secondary">Capabilities</Badge>
-            <h2>Everything starts with a strong foundation.</h2>
-            <p>Reusable pieces designed to scale from a student project to a real product.</p>
-          </div>
-
-          <div className="feature-grid">
-            <Card>
-              <div className="icon-box"><Code2 size={21} /></div>
-              <h3>Reusable Components</h3>
-              <p>Consistent buttons, cards, badges and inputs that can be reused across applications.</p>
-            </Card>
-
-            <Card>
-              <div className="icon-box"><Monitor size={21} /></div>
-              <h3>Responsive Design</h3>
-              <p>Layouts that adapt naturally across desktop, tablet and mobile screens.</p>
-            </Card>
-
-            <Card>
-              <div className="icon-box"><Zap size={21} /></div>
-              <h3>Motion & Interaction</h3>
-              <p>Subtle animation and feedback make interfaces feel responsive without becoming distracting.</p>
-            </Card>
-
-            <Card>
-              <div className="icon-box"><Sparkles size={21} /></div>
-              <h3>3D Ready</h3>
-              <p>Three.js and React Three Fiber remain available for future product features where 3D adds real value.</p>
-            </Card>
-          </div>
-        </section>
-
-        <section className="section container" id="showcase">
-          <div className="section-heading">
-            <Badge color="warning">Component Lab</Badge>
-            <h2>Interactive component showcase.</h2>
-            <p>These are the building blocks you can reuse in future websites and products.</p>
-          </div>
-
-          <div className="showcase-grid">
-            <Card>
-              <span className="eyebrow">BUTTONS</span>
-              <h3>Actions</h3>
-              <div className="component-row">
-                <Button onClick={() => handleAction('Primary')}>Primary</Button>
-                <Button variant="secondary" onClick={() => handleAction('Secondary')}>Secondary</Button>
-                <Button variant="outline" onClick={() => handleAction('Outline')}>Outline</Button>
-                <Button disabled>Disabled</Button>
-              </div>
-            </Card>
-
-            <Card>
-              <span className="eyebrow">INPUT</span>
-              <h3>Live interaction</h3>
-              <Input
-                value={inputValue}
-                onChange={(event) => setInputValue(event.target.value)}
-                placeholder="Type something..."
-              />
-              <p className="input-preview">
-                {inputValue ? `You typed: ${inputValue}` : 'Your input will appear here.'}
-              </p>
-            </Card>
-
-            <Card>
-              <span className="eyebrow">STATUS</span>
-              <h3>System states</h3>
-              <div className="badge-row">
-                <Badge color="success">Active</Badge>
-                <Badge color="warning">Pending</Badge>
-                <Badge color="error">Error</Badge>
-              </div>
-            </Card>
-
-            <Card>
-              <span className="eyebrow">MOTION</span>
-              <h3>GSAP animation</h3>
-              <div className="motion-stage">
-                <div ref={motionRef} className="motion-orb">
-                  <Sparkles size={22} />
-                </div>
-              </div>
-            </Card>
-          </div>
-        </section>
-      </main>
-
-      <footer className="site-footer">
-        <div className="container footer-inner">
-          <span>ProUI - Professional Web Demo</span>
-          <span>Built with React + modern UI foundations</span>
-        </div>
-      </footer>
+          {active === 'ai' && (
+            <LocalAI
+              prompt={aiPrompt}
+              setPrompt={setAiPrompt}
+              response={aiResponse}
+              busy={aiBusy}
+              run={runLocalAI}
+              configured={isOllamaConfigured()}
+            />
+          )}
+        </main>
+      </div>
     </div>
   )
+}
+
+function PageHeader({ eyebrow, title, description, action }) {
+  return (
+    <div className="page-header">
+      <div>
+        <div className="eyebrow">{eyebrow}</div>
+        <h1>{title}</h1>
+        <p>{description}</p>
+      </div>
+      {action}
+    </div>
+  )
+}
+
+function Dashboard({ project, created, go }) {
+  return (
+    <>
+      <PageHeader
+        eyebrow="DEVELOPER WORKSTATION"
+        title="Build the solution, not just the website."
+        description="Start with a real problem. DevStation organizes the engineering work from idea to deployment and presentation."
+        action={<Button onClick={() => go('project')}>New Project <ArrowRight size={17} /></Button>}
+      />
+
+      <div className="hero-workspace">
+        <div>
+          <Badge color="primary"><Sparkles size={14} /> Hackathon-ready workflow</Badge>
+          <h2>{created ? project.title || 'Your active project' : 'What are you building?'}</h2>
+          <p>{created ? project.problem : 'Enter a university or hackathon problem and turn it into an actionable engineering plan.'}</p>
+          <div className="hero-actions">
+            <Button onClick={() => go(created ? 'blueprint' : 'project')}>
+              {created ? 'Open Blueprint' : 'Start a Project'} <ArrowRight size={17} />
+            </Button>
+            <Button variant="outline" onClick={() => go('ai')}><BrainCircuit size={17} /> Local AI</Button>
+          </div>
+        </div>
+        <div className="system-visual">
+          <div className="system-orbit orbit-one" />
+          <div className="system-orbit orbit-two" />
+          <div className="system-core"><Code2 size={28} /></div>
+          <span className="system-node node-a">UI</span>
+          <span className="system-node node-b">API</span>
+          <span className="system-node node-c">DB</span>
+          <span className="system-node node-d">AI</span>
+        </div>
+      </div>
+
+      <div className="section-title-row"><h2>Engineering pipeline</h2><span>6 stages</span></div>
+      <div className="pipeline-grid">
+        {stageItems.map(([name, description], index) => (
+          <Card key={name}>
+            <div className="pipeline-number">0{index + 1}</div>
+            <h3>{name}</h3>
+            <p>{description}</p>
+          </Card>
+        ))}
+      </div>
+
+      <div className="dashboard-grid">
+        <Card>
+          <div className="card-heading"><span><GitBranch size={17} /> Project control</span><Badge color="secondary">Ready</Badge></div>
+          <p>Keep the problem, architecture, tasks, quality checks and deployment plan in one workspace.</p>
+        </Card>
+        <Card>
+          <div className="card-heading"><span><BrainCircuit size={17} /> Local intelligence</span><Badge color="warning">Ollama</Badge></div>
+          <p>Connect the workstation to your local coding models without requiring a paid AI API.</p>
+        </Card>
+        <Card>
+          <div className="card-heading"><span><Rocket size={17} /> Ship confidently</span><Badge color="success">Controlled</Badge></div>
+          <p>Prepare GitHub and deployment steps while keeping final account actions under your control.</p>
+        </Card>
+      </div>
+    </>
+  )
+}
+
+function ProjectForm({ project, setProject, onSubmit }) {
+  const update = (key, value) => setProject((current) => ({ ...current, [key]: value }))
+  return (
+    <>
+      <PageHeader eyebrow="01 / NEW PROJECT" title="Give the workstation the problem." description="The problem statement is the starting point. Everything else is derived from it." />
+      <form className="project-form" onSubmit={onSubmit}>
+        <Card>
+          <div className="form-section">
+            <Badge color="primary">Problem</Badge>
+            <label>Project title <Input value={project.title} onChange={(e) => update('title', e.target.value)} placeholder="Example: Smart Campus Issue Reporter" /></label>
+            <label>Problem statement <textarea className="workstation-textarea" value={project.problem} onChange={(e) => update('problem', e.target.value)} placeholder="Describe the problem your team must solve..." required /></label>
+            <label>Target users <Input value={project.users} onChange={(e) => update('users', e.target.value)} placeholder="Students, faculty, local businesses..." /></label>
+          </div>
+        </Card>
+        <div className="form-side">
+          <Card>
+            <div className="form-section">
+              <Badge color="secondary">Context</Badge>
+              <label>Platform <select value={project.platform} onChange={(e) => update('platform', e.target.value)}><option>Web application</option><option>Web + mobile</option><option>Dashboard</option><option>3D / immersive web</option></select></label>
+              <label>Hackathon duration <Input value={project.duration} onChange={(e) => update('duration', e.target.value)} /></label>
+              <label>Team size <Input value={project.teamSize} onChange={(e) => update('teamSize', e.target.value)} /></label>
+              <label>Constraints <textarea className="workstation-textarea compact" value={project.constraints} onChange={(e) => update('constraints', e.target.value)} placeholder="Budget, APIs, hardware, offline requirements..." /></label>
+              <Button type="submit">Create Project Workspace <ArrowRight size={17} /></Button>
+            </div>
+          </Card>
+        </div>
+      </form>
+    </>
+  )
+}
+
+function Blueprint({ blueprint, project, created }) {
+  return (
+    <>
+      <PageHeader eyebrow="02 / PROJECT BLUEPRINT" title={created ? project.title || 'Project Blueprint' : 'Project Blueprint'} description="A structured plan that turns the problem into engineering decisions." />
+      <div className="metric-grid">
+        <Metric label="Features" value={blueprint.features.length} />
+        <Metric label="Screens" value={blueprint.screens.length} />
+        <Metric label="Services" value={blueprint.services.length} />
+        <Metric label="Delivery stages" value={blueprint.tasks.length} />
+      </div>
+      <div className="blueprint-grid">
+        <BlueprintCard title="Problem understanding" icon={Sparkles} items={[blueprint.problem, `Users: ${project.users || 'To be defined'}`, `Platform: ${project.platform}`]} />
+        <BlueprintCard title="Core features" icon={Boxes} items={blueprint.features} />
+        <BlueprintCard title="Application screens" icon={LayoutDashboard} items={blueprint.screens} />
+        <BlueprintCard title="Engineering services" icon={Server} items={blueprint.services} />
+      </div>
+    </>
+  )
+}
+
+function Architecture({ blueprint }) {
+  return (
+    <>
+      <PageHeader eyebrow="03 / SYSTEM ARCHITECTURE" title="See the system before coding it." description="Use this as the shared technical picture for your team." />
+      <div className="architecture-canvas">
+        <ArchitectureNode icon={Globe2} title="Users / Browser" subtitle="Responsive UI" />
+        <div className="architecture-arrow">↓</div>
+        <ArchitectureNode icon={Code2} title="Frontend" subtitle="React / Vite / UI system" />
+        <div className="architecture-arrow">↓</div>
+        <div className="architecture-row">
+          <ArchitectureNode icon={Server} title="Backend" subtitle="Node.js / API layer" />
+          <ArchitectureNode icon={BrainCircuit} title="AI" subtitle="Ollama / model service" />
+          <ArchitectureNode icon={Database} title="Data" subtitle="SQL / NoSQL / storage" />
+        </div>
+        <div className="architecture-note"><Network size={17} /> Adapt these layers to the actual problem. Current services: {blueprint.services.join(', ')}.</div>
+      </div>
+    </>
+  )
+}
+
+function TechStack({ blueprint }) {
+  return (
+    <>
+      <PageHeader eyebrow="04 / TECHNOLOGY STACK" title="Choose technology for the problem." description="A stack is useful only when each technology has a job." />
+      <div className="stack-grid">
+        {blueprint.stack.map((item) => <Card key={item.name}><div className="stack-icon">{item.icon}</div><h3>{item.name}</h3><p>{item.reason}</p><Badge color="secondary">{item.layer}</Badge></Card>)}
+      </div>
+    </>
+  )
+}
+
+function Tasks({ blueprint }) {
+  return (
+    <>
+      <PageHeader eyebrow="05 / DEVELOPMENT TASKS" title="Turn architecture into team work." description="Use this as the starting backlog. Split tasks among team members." />
+      <div className="task-list">
+        {blueprint.tasks.map((task, index) => <div className="task-row" key={task}><span className="task-check">{index + 1}</span><div><strong>{task}</strong><small>Not started · assign to a team member</small></div><Badge color={index < 2 ? 'primary' : 'secondary'}>{index < 2 ? 'Foundation' : 'Build'}</Badge></div>)}
+      </div>
+    </>
+  )
+}
+
+function LocalAI({ prompt, setPrompt, response, busy, run, configured }) {
+  return (
+    <>
+      <PageHeader eyebrow="06 / LOCAL AI" title="Your local coding intelligence." description="The interface is ready for Ollama. Run models on your own laptop instead of depending on a paid cloud API." />
+      <div className="ai-layout">
+        <Card>
+          <div className="ai-status"><span className={configured ? 'status-dot' : 'status-dot warning'} /> {configured ? 'Ollama endpoint configured' : 'Ollama endpoint: http://localhost:11434'}</div>
+          <h3>Ask your local developer assistant</h3>
+          <textarea className="workstation-textarea ai-input" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Example: Review the architecture for this project and identify missing security requirements." />
+          <Button onClick={run} disabled={busy || !prompt.trim()}>{busy ? 'Thinking…' : 'Run Local AI'} <Zap size={17} /></Button>
+        </Card>
+        <Card>
+          <div className="card-heading"><span><BrainCircuit size={17} /> AI response</span><Badge color="warning">Local</Badge></div>
+          <pre className="ai-response">{response || 'Your local model response will appear here.'}</pre>
+        </Card>
+      </div>
+      <div className="ai-model-grid">
+        <Card><strong>qwen2.5-coder:7b</strong><p>Coding, debugging and implementation assistance.</p></Card>
+        <Card><strong>llama3.1:8b</strong><p>Problem analysis, planning and general reasoning.</p></Card>
+      </div>
+    </>
+  )
+}
+
+function Quality() {
+  return (
+    <>
+      <PageHeader eyebrow="07 / QUALITY GATE" title="Check before you present." description="A professional project is more than a working screen." />
+      <div className="quality-grid">
+        {[
+          ['Accessibility', 'Keyboard navigation, labels, contrast and reduced motion.', ShieldCheck],
+          ['Security', 'Input validation, authentication boundaries and secret handling.', ShieldCheck],
+          ['Performance', 'Bundle size, loading states, images and unnecessary work.', Zap],
+          ['Testing', 'Critical flows, API errors and responsive behavior.', TestTube2],
+          ['Code quality', 'Reusable components, clear naming and maintainable structure.', Code2],
+          ['Demo readiness', 'A reliable 2–5 minute story with a clear problem and result.', Play],
+        ].map(([title, text, Icon]) => <Card key={title}><div className="icon-box"><Icon size={20} /></div><h3>{title}</h3><p>{text}</p></Card>)}
+      </div>
+    </>
+  )
+}
+
+function Deploy() {
+  return (
+    <>
+      <PageHeader eyebrow="08 / SHIP" title="Prepare the release." description="Deployment remains under your control; the workstation organizes the steps." />
+      <div className="release-flow">
+        {[
+          ['Build', 'npm run build'],
+          ['Verify', 'npm run lint + test'],
+          ['Git', 'Commit → branch → pull request'],
+          ['Deploy', 'GitHub Pages / Vercel / Netlify'],
+          ['Domain', 'Configure custom domain when required'],
+          ['Verify', 'Open production URL and test critical flows'],
+        ].map(([title, command], index) => <Card key={title}><span className="pipeline-number">0{index + 1}</span><h3>{title}</h3><code>{command}</code></Card>)}
+      </div>
+    </>
+  )
+}
+
+function Presentation({ project, blueprint }) {
+  return (
+    <>
+      <PageHeader eyebrow="09 / PRESENTATION" title="Tell the story like an engineer." description="Turn your technical work into a clear demo for judges, faculty and teammates." />
+      <div className="presentation-grid">
+        <Card><span className="eyebrow">01 · PROBLEM</span><h2>{project.problem || 'Your problem statement'}</h2><p>Who has this problem and why does it matter?</p></Card>
+        <Card><span className="eyebrow">02 · SOLUTION</span><h2>{project.title || 'Your solution'}</h2><p>Show the core workflow rather than listing every feature.</p></Card>
+        <Card><span className="eyebrow">03 · TECHNICAL</span><h2>{blueprint.stack.slice(0, 3).map((item) => item.name).join(' · ')}</h2><p>Explain why each major technology was selected.</p></Card>
+        <Card><span className="eyebrow">04 · LIVE DEMO</span><h2>Problem → product → result</h2><p>Keep a reliable path through the most valuable user journey.</p></Card>
+      </div>
+    </>
+  )
+}
+
+function BlueprintCard({ title, icon: Icon, items }) {
+  return <Card><div className="card-heading"><span><Icon size={17} /> {title}</span><ArrowRight size={16} /></div><ul className="clean-list">{items.map((item) => <li key={item}><CheckCircle2 size={15} /> {item}</li>)}</ul></Card>
+}
+
+function ArchitectureNode({ icon: Icon, title, subtitle }) {
+  return <div className="architecture-node"><div className="architecture-icon"><Icon size={21} /></div><strong>{title}</strong><small>{subtitle}</small></div>
+}
+
+function Metric({ label, value }) {
+  return <Card><span className="metric-value">{value}</span><span className="metric-label">{label}</span></Card>
+}
+
+function buildBlueprint(project) {
+  const problem = project.problem || 'Define the problem statement to generate a project-specific blueprint.'
+  return {
+    problem,
+    features: ['Core user workflow', 'Authentication / role control when required', 'Responsive dashboard or primary experience', 'Validation, error and loading states', 'Analytics or reporting where useful'],
+    screens: ['Landing / entry', 'Authentication', 'Main application workspace', 'Details / workflow screen', 'Settings / profile'],
+    services: ['Frontend application', 'Backend API', 'Database / storage', 'Authentication', 'AI service when useful'],
+    tasks: ['Clarify requirements and success criteria', 'Create project skeleton and design system', 'Build primary user workflow', 'Implement backend/API and data layer', 'Integrate frontend with services', 'Add quality, security and accessibility checks', 'Prepare GitHub, deployment and demo'],
+    stack: [
+      { name: 'React + Vite', layer: 'Frontend', reason: 'Fast component-based development for a modern web interface.', icon: '⚛' },
+      { name: 'Node.js + API', layer: 'Backend', reason: 'A practical JavaScript backend for REST APIs and rapid hackathon iteration.', icon: '⬢' },
+      { name: 'PostgreSQL / Supabase', layer: 'Data', reason: 'Use relational data when the problem needs structured, connected records.', icon: '◈' },
+      { name: 'Ollama', layer: 'AI', reason: 'Run local models for planning and coding assistance without a paid API.', icon: 'AI' },
+      { name: 'Three.js / WebGL', layer: 'Experience', reason: 'Use real-time 3D only when visualization or interaction improves the solution.', icon: '3D' },
+      { name: 'GSAP', layer: 'Motion', reason: 'Create controlled, purposeful interface motion and presentation sequences.', icon: '↗' },
+    ],
+  }
 }
 
 export default App
