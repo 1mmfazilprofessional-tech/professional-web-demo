@@ -30,7 +30,7 @@ import Button from './components/ui/Button'
 import Card from './components/ui/Card'
 import Badge from './components/ui/Badge'
 import Input from './components/ui/Input'
-import { analyzeArchitecture, analyzeExperience, analyzeProblem, askOllama, isOllamaConfigured } from './services/ollama'
+import { analyzeArchitecture, analyzeExperience, analyzeCodePlan, analyzeProblem, askOllama, isOllamaConfigured } from './services/ollama'
 import './styles/design-system.css'
 
 const navItems = [
@@ -40,6 +40,7 @@ const navItems = [
   ['architecture', 'Architecture', Network],
   ['stack', 'Tech Stack', Layers3],
   ['ux', 'Experience', Globe2],
+  ['code', 'Code Lab', Code2],
   ['tasks', 'Tasks', CheckCircle2],
   ['ai', 'Local AI', BrainCircuit],
   ['quality', 'Quality', ShieldCheck],
@@ -82,6 +83,9 @@ function App() {
   const [experience, setExperience] = useState(null)
   const [experienceBusy, setExperienceBusy] = useState(false)
   const [experienceError, setExperienceError] = useState('')
+  const [codePlan, setCodePlan] = useState(null)
+  const [codeBusy, setCodeBusy] = useState(false)
+  const [codeError, setCodeError] = useState('')
 
   const blueprint = useMemo(() => buildBlueprint(project, analysis), [project, analysis])
 
@@ -135,6 +139,14 @@ function App() {
     try { setExperience(await analyzeExperience(project, blueprint, architecture, analysis)); setNotice('UI/UX and experience plan generated.') }
     catch (error) { setExperienceError(error.message); setNotice('Experience design could not be completed.') }
     finally { setExperienceBusy(false) }
+  }
+
+  const runCodePlanning = async () => {
+    if (!project.problem.trim()) { setNotice('Create a project before generating the implementation plan.'); return }
+    setCodeBusy(true); setCodeError('')
+    try { setCodePlan(await analyzeCodePlan(project, blueprint, architecture, experience)); setNotice('Implementation plan generated from the architecture and UX.') }
+    catch (error) { setCodeError(error.message); setNotice('Code planning could not be completed.') }
+    finally { setCodeBusy(false) }
   }
 
   const createProject = (event) => {
@@ -227,6 +239,7 @@ function App() {
           {active === 'architecture' && <Architecture blueprint={blueprint} architecture={architecture} busy={architectureBusy} error={architectureError} runAnalysis={runArchitectureAnalysis} />}
           {active === 'stack' && <TechStack blueprint={blueprint} />}
           {active === 'ux' && <Experience blueprint={blueprint} architecture={architecture} experience={experience} busy={experienceBusy} error={experienceError} runAnalysis={runExperienceAnalysis} />}
+          {active === 'code' && <CodeLab blueprint={blueprint} architecture={architecture} experience={experience} codePlan={codePlan} busy={codeBusy} error={codeError} runAnalysis={runCodePlanning} />}
           {active === 'tasks' && <Tasks blueprint={blueprint} />}
           {active === 'quality' && <Quality />}
           {active === 'deploy' && <Deploy />}
@@ -461,4 +474,32 @@ function Experience({ blueprint, architecture, experience, busy, error, runAnaly
     </>
   )
 }
+
+function CodeLab({ blueprint, architecture, experience, codePlan, busy, error, runAnalysis }) {
+  const files = codePlan?.files || [
+    { path: 'src/', purpose: 'Application source code' },
+    { path: 'src/components/', purpose: 'Reusable UI components' },
+    { path: 'src/services/', purpose: 'API and integration services' },
+    { path: 'src/pages/', purpose: 'Feature-level screens' },
+    { path: 'tests/', purpose: 'Automated quality checks' },
+  ]
+  return (
+    <>
+      <PageHeader eyebrow="05 / CODE LAB" title="Turn architecture into an implementation plan." description="Generate a concrete file map, implementation sequence, interfaces and acceptance criteria before code is written." action={<Button onClick={runAnalysis} disabled={busy || !blueprint.problem}>{busy ? 'Planning implementation…' : codePlan ? 'Regenerate Code Plan' : 'Generate Code Plan'} <Code2 size={17} /></Button>} />
+      {error && <div className="analysis-error" role="alert">{error}</div>}
+      <div className="code-lab-grid">
+        <Card><div className="card-heading"><span><FolderTree size={17} /> Project file map</span><Badge color="secondary">{files.length} areas</Badge></div><div className="file-tree">{files.map((file) => <div className="file-row" key={file.path}><Code2 size={15} /><strong>{file.path}</strong><span>{file.purpose}</span></div>)}</div></Card>
+        <Card><div className="card-heading"><span><ListChecks size={17} /> Implementation sequence</span></div><IntelligenceList items={codePlan?.implementationOrder || blueprint.tasks.map((t) => typeof t === 'string' ? t : t.name)} /></Card>
+      </div>
+      {codePlan && <div className="code-detail-grid">
+        <Card><div className="card-heading"><span><Braces size={17} /> Core interfaces</span></div><IntelligenceList items={codePlan.coreInterfaces} /></Card>
+        <Card><div className="card-heading"><span><CheckCircle2 size={17} /> Acceptance criteria</span></div><IntelligenceList items={codePlan.acceptanceCriteria} /></Card>
+        <Card><div className="card-heading"><span><Bug size={17} /> High-risk areas</span><Badge color="warning">Review</Badge></div><IntelligenceList items={codePlan.riskAreas} /></Card>
+        <Card><div className="card-heading"><span><GitBranch size={17} /> Git checkpoints</span></div><IntelligenceList items={codePlan.gitCheckpoints} /></Card>
+      </div>}
+      <div className="code-lab-note"><Sparkles size={17} /> This stage plans implementation. The next stage will connect generated implementation tasks to an actual code workspace and integration checks.</div>
+    </>
+  )
+}
+
 
