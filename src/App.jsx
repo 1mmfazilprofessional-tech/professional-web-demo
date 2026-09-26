@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Component, useEffect, useMemo, useState } from 'react'
 import {
   Activity,
   ArrowRight,
@@ -55,6 +55,56 @@ import Badge from './components/ui/Badge'
 import Input from './components/ui/Input'
 import { analyzeArchitecture, analyzeExperience, analyzeCodePlan, analyzeProblem, askOllama, checkOllamaHealth, isOllamaConfigured } from './services/ollama'
 import './styles/design-system.css'
+
+class AppErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, message: '' }
+  }
+
+  static getDerivedStateFromError(error) {
+    return {
+      hasError: true,
+      message: error instanceof Error ? error.message : 'Unexpected application error.',
+    }
+  }
+
+  componentDidCatch(error) {
+    console.error('DevStation runtime error:', error)
+  }
+
+  handleRecovery = () => {
+    this.setState({ hasError: false, message: '' })
+  }
+
+  handleReset = () => {
+    try {
+      window.localStorage.removeItem(WORKSPACE_STORAGE_KEY)
+    } catch {}
+    window.location.reload()
+  }
+
+  render() {
+    if (!this.state.hasError) return this.props.children
+
+    return (
+      <main className="app-shell" style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '32px' }}>
+        <Card>
+          <div className="card-heading">
+            <span><ShieldAlert size={18} /> DevStation recovered a runtime error</span>
+            <Badge color="danger">Recovery mode</Badge>
+          </div>
+          <p>The application stopped rendering one part of the workstation safely instead of leaving a blank page.</p>
+          <pre style={{ whiteSpace: 'pre-wrap', opacity: 0.8 }}>{this.state.message}</pre>
+          <div className="hero-actions">
+            <Button onClick={this.handleRecovery}><RotateCcw size={16} /> Try again</Button>
+            <Button variant="outline" onClick={this.handleReset}><RefreshCw size={16} /> Reset local workspace</Button>
+          </div>
+        </Card>
+      </main>
+    )
+  }
+}
 
 const WORKSPACE_STORAGE_KEY = 'devstation.workspace.v1'
 
@@ -973,4 +1023,4 @@ function PresentationDemo({ presentation, busy, error, runAnalysis }) {
   )
 }
 
-export default App
+function AppWithRecovery() {\n  return (\n    <AppErrorBoundary>\n      <App />\n    </AppErrorBoundary>\n  )\n}\n\nexport default AppWithRecovery
