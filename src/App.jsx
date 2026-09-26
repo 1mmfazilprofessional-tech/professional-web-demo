@@ -46,6 +46,7 @@ const navItems = [
   ['quality', 'Quality & Security', ShieldCheck],
   ['testing', 'Testing', TestTube2],
   ['repo', 'Repo & Code Ops', GitBranch],
+  ['deploy', 'Release', Rocket],
   ['tasks', 'Tasks', CheckCircle2],
   ['ai', 'Local AI', BrainCircuit],
   ['quality', 'Quality', ShieldCheck],
@@ -107,6 +108,9 @@ function App() {
   const [repoOps, setRepoOps] = useState(null)
   const [repoOpsBusy, setRepoOpsBusy] = useState(false)
   const [repoOpsError, setRepoOpsError] = useState('')
+  const [deployment, setDeployment] = useState(null)
+  const [deploymentBusy, setDeploymentBusy] = useState(false)
+  const [deploymentError, setDeploymentError] = useState('')
 
   const blueprint = useMemo(() => buildBlueprint(project, analysis), [project, analysis])
 
@@ -210,6 +214,14 @@ function App() {
     finally { setRepoOpsBusy(false) }
   }
 
+  const runDeploymentAnalysis = async () => {
+    if (!project.problem.trim()) { setDeploymentError('Create a project before generating the release plan.'); return }
+    setDeploymentBusy(true); setDeploymentError('')
+    try { setDeployment(await analyzeDeployment(project, architecture, integration, quality, testing, repoOps)); setNotice('Deployment and release plan generated.') }
+    catch (error) { setDeploymentError(error.message); setNotice('Deployment planning could not be completed.') }
+    finally { setDeploymentBusy(false) }
+  }
+
   const createProject = (event) => {
     event.preventDefault()
     if (!project.problem.trim()) {
@@ -306,6 +318,7 @@ function App() {
           {active === 'quality' && <QualitySecurity quality={quality} busy={qualityBusy} error={qualityError} runAnalysis={runQualityAnalysis} />}
           {active === 'testing' && <Testing testing={testing} busy={testingBusy} error={testingError} runAnalysis={runTestingAnalysis} />}
           {active === 'repo' && <RepoOps repoOps={repoOps} busy={repoOpsBusy} error={repoOpsError} runAnalysis={runRepoOpsAnalysis} />}
+          {active === 'deploy' && <Deployment deployment={deployment} busy={deploymentBusy} error={deploymentError} runAnalysis={runDeploymentAnalysis} />}
           {active === 'tasks' && <Tasks blueprint={blueprint} />}
           {active === 'quality' && <Quality />}
           {active === 'deploy' && <Deploy />}
@@ -685,6 +698,31 @@ function RepoOps({ repoOps, busy, error, runAnalysis }) {
         <Card><div className="card-heading"><span><CheckCircle2 size={17} /> Done criteria</span></div><IntelligenceList items={repoOps.doneCriteria} /></Card>
       </div>}
       <div className="repo-note"><GitBranch size={17} /> This stage plans repository operations. It does not silently modify source code; actual edits remain reviewable and verifiable.</div>
+    </>
+  )
+}
+
+
+function Deployment({ deployment, busy, error, runAnalysis }) {
+  const stages = deployment?.stages || [
+    { name: 'Preflight', purpose: 'Validate dependencies, environment variables and build configuration.' },
+    { name: 'Build', purpose: 'Create a production build and catch compile/lint failures.' },
+    { name: 'Deploy', purpose: 'Publish the verified build through the selected deployment target.' },
+    { name: 'Verify', purpose: 'Check the live URL, critical flows, APIs and assets.' },
+  ]
+  return (
+    <>
+      <PageHeader eyebrow="11 / RELEASE ENGINE" title="Ship safely, not just quickly." description="Plan the path from verified code to a working live product, including environment checks, deployment verification and recovery." action={<Button onClick={runAnalysis} disabled={busy}>{busy ? 'Planning release…' : deployment ? 'Regenerate Release Plan' : 'Generate Release Plan'} <Rocket size={17} /></Button>} />
+      {error && <div className="analysis-error" role="alert">{error}</div>}
+      {deployment && <div className="release-summary"><div><Badge color={deployment.releaseStatus === 'Ready' ? 'success' : 'warning'}>{deployment.releaseStatus || 'Review'}</Badge><h2>{deployment.summary}</h2></div><div><strong>{deployment.gateCount ?? 0}</strong><span> release gates</span></div></div>}
+      <div className="release-stage-grid">{stages.map((stage, index) => <Card key={stage.name}><div className="release-stage-number">0{index + 1}</div><div className="card-heading"><span><Rocket size={17} /> {stage.name}</span></div><p>{stage.purpose}</p></Card>)}</div>
+      {deployment && <div className="release-detail-grid">
+        <Card><div className="card-heading"><span><Settings2 size={17} /> Environment checks</span></div><IntelligenceList items={deployment.environmentChecks} /></Card>
+        <Card><div className="card-heading"><span><CheckCircle2 size={17} /> Production verification</span></div><IntelligenceList items={deployment.productionVerification} /></Card>
+        <Card><div className="card-heading"><span><RotateCcw size={17} /> Rollback / recovery</span></div><IntelligenceList items={deployment.rollbackPlan} /></Card>
+        <Card><div className="card-heading"><span><ShieldCheck size={17} /> Release gates</span></div><IntelligenceList items={deployment.releaseGates} /></Card>
+      </div>}
+      <div className="release-note"><Rocket size={17} /> A release plan is not a deployment claim. The workstation will require actual build and live verification before calling a release ready.</div>
     </>
   )
 }
