@@ -287,3 +287,28 @@ export async function analyzeRepoOps(project, blueprint, architecture, codePlan,
     throw new Error('The local model returned invalid repository-operation JSON. Run the repository plan again.')
   }
 }
+
+
+export async function analyzeDeployment(project, architecture, integration, quality, testing, repoOps) {
+  const prompt = [
+    'You are a senior DevOps engineer and release manager for a time-constrained hackathon.',
+    'Create a safe, practical release plan from verified development work to a live application.',
+    'Do not claim that deployment, build, production or environment checks have actually passed. They are planned gates.',
+    'Return ONLY valid JSON with keys: releaseStatus, summary, gateCount, stages (array of {name,purpose}), environmentChecks (array), productionVerification (array), rollbackPlan (array), releaseGates (array).',
+    'Keep the plan suitable for a small hackathon team and avoid unnecessary infrastructure.',
+    'Project: ' + JSON.stringify(project),
+    'Architecture: ' + JSON.stringify(architecture || {}),
+    'Integration: ' + JSON.stringify(integration || {}),
+    'Quality: ' + JSON.stringify(quality || {}),
+    'Testing: ' + JSON.stringify(testing || {}),
+    'Repository operations: ' + JSON.stringify(repoOps || {})
+  ].join('\n')
+  const raw = await generate(prompt)
+  try {
+    return JSON.parse(raw)
+  } catch {
+    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
+    if (fenced) return JSON.parse(fenced[1])
+    throw new Error('The local model returned invalid deployment JSON. Run the release plan again.')
+  }
+}
