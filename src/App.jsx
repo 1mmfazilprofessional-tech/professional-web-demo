@@ -52,7 +52,7 @@ import Button from './components/ui/Button'
 import Card from './components/ui/Card'
 import Badge from './components/ui/Badge'
 import Input from './components/ui/Input'
-import { analyzeArchitecture, analyzeExperience, analyzeCodePlan, analyzeProblem, analyzeIntegration, analyzeError, analyzeQuality, analyzeTesting, analyzeRepoOps, analyzeDeployment, analyzePresentation, askOllama, checkOllamaHealth } from './services/ollama'
+import { analyzeArchitecture, analyzeExperience, analyzeCodePlan, analyzeProblem, analyzeIntegration, analyzeError, analyzeQuality, analyzeTesting, analyzeRepoOps, analyzeDeployment, analyzePresentation, buildProduct, askOllama, checkOllamaHealth } from './services/ollama'
 import './styles/design-system.css'
 
 class AppErrorBoundary extends Component {
@@ -205,9 +205,12 @@ function App() {
   const [presentation, setPresentation] = useState(() => savedWorkspace?.presentation ?? null)
   const [presentationBusy, setPresentationBusy] = useState(false)
   const [presentationError, setPresentationError] = useState('')
+  const [generatedProduct, setGeneratedProduct] = useState(() => savedWorkspace?.generatedProduct ?? null)
+  const [productBusy, setProductBusy] = useState(false)
+  const [productError, setProductError] = useState('')
 
   const blueprint = useMemo(() => buildBlueprint(project, analysis), [project, analysis])
-  const stages = useMemo(() => ({ analysis, architecture, experience, codePlan, integration, quality, testing, repoOps, deployment, presentation }), [analysis, architecture, experience, codePlan, integration, quality, testing, repoOps, deployment, presentation])
+  const stages = useMemo(() => ({ analysis, architecture, experience, codePlan, integration, quality, testing, repoOps, deployment, presentation }), [analysis, architecture, experience, codePlan, integration, quality, testing, repoOps, deployment, presentation, generatedProduct])
 
   useEffect(() => {
     saveWorkspace({
@@ -226,6 +229,7 @@ function App() {
       repoOps,
       deployment,
       presentation,
+      generatedProduct,
     })
   }, [active, project, created, analysis, architecture, experience, codePlan, integration, debugInput, debugResult, quality, testing, repoOps, deployment, presentation])
 
@@ -358,6 +362,30 @@ function App() {
     finally { setPresentationBusy(false) }
   }
 
+  const runProductBuild = async () => {
+    if (!project.problem.trim()) {
+      setProductError('Create a project before building the product.')
+      return
+    }
+    if (!analysis || !architecture || !experience || !codePlan || !integration || !quality || !testing || !deployment || !presentation) {
+      setProductError('Complete the engineering stages before building the runnable product.')
+      return
+    }
+
+    setProductBusy(true)
+    setProductError('')
+    try {
+      const result = await buildProduct(project, blueprint, analysis, architecture, experience, codePlan, integration, quality, testing, deployment, presentation)
+      setGeneratedProduct(result)
+      setNotice('Runnable product generated locally from the completed engineering pipeline.')
+    } catch (error) {
+      setProductError(error.message)
+      setNotice('Runnable product could not be generated.')
+    } finally {
+      setProductBusy(false)
+    }
+  }
+
   const createProject = (event) => {
     event.preventDefault()
     if (!project.problem.trim()) {
@@ -454,7 +482,7 @@ function App() {
           {active === 'architecture' && <Architecture blueprint={blueprint} architecture={architecture} busy={architectureBusy} error={architectureError} runAnalysis={runArchitectureAnalysis} />}
           {active === 'stack' && <TechStack blueprint={blueprint} />}
           {active === 'ux' && <Experience blueprint={blueprint} architecture={architecture} experience={experience} busy={experienceBusy} error={experienceError} runAnalysis={runExperienceAnalysis} />}
-          {active === 'code' && <CodeLab blueprint={blueprint} codePlan={codePlan} busy={codeBusy} error={codeError} runAnalysis={runCodePlanning} />}
+          {active === 'code' && <CodeLab blueprint={blueprint} codePlan={codePlan} busy={codeBusy} error={codeError} runAnalysis={runCodePlanning} generatedProduct={generatedProduct} productBusy={productBusy} productError={productError} runProductBuild={runProductBuild} />}
           {active === 'integration' && <Integration blueprint={blueprint} architecture={architecture} codePlan={codePlan} integration={integration} busy={integrationBusy} error={integrationError} runAnalysis={runIntegrationAnalysis} />}
           {active === 'debug' && <Debugging debugInput={debugInput} setDebugInput={setDebugInput} result={debugResult} busy={debugBusy} error={debugError} runAnalysis={runDebugAnalysis} />}
           {active === 'quality' && <QualitySecurity quality={quality} busy={qualityBusy} error={qualityError} runAnalysis={runQualityAnalysis} />}
@@ -872,7 +900,7 @@ function Experience({ blueprint, architecture, experience, busy, error, runAnaly
   )
 }
 
-function CodeLab({ blueprint, codePlan, busy, error, runAnalysis }) {
+function CodeLab({ blueprint, codePlan, busy, error, runAnalysis, generatedProduct, productBusy, productError, runProductBuild }) {
   const files = codePlan?.files || [
     { path: 'src/', purpose: 'Application source code' },
     { path: 'src/components/', purpose: 'Reusable UI components' },
@@ -894,7 +922,20 @@ function CodeLab({ blueprint, codePlan, busy, error, runAnalysis }) {
         <Card><div className="card-heading"><span><Bug size={17} /> High-risk areas</span><Badge color="warning">Review</Badge></div><IntelligenceList items={codePlan.riskAreas} /></Card>
         <Card><div className="card-heading"><span><GitBranch size={17} /> Git checkpoints</span></div><IntelligenceList items={codePlan.gitCheckpoints} /></Card>
       </div>}
-      <div className="code-lab-note"><Sparkles size={17} /> This stage plans implementation. The next stage will connect generated implementation tasks to an actual code workspace and integration checks.</div>
+      <div className="code-lab-note">
+        <Sparkles size={17} /> Code Lab first plans implementation. Once the engineering pipeline is complete, DevStation can now build a runnable MVP from those decisions.
+      </div>
+      <Card>
+        <div className="card-heading"><span><PlayCircle size={17} /> Runnable product</span><Badge color={generatedProduct ? 'success' : 'secondary'}>{generatedProduct ? 'Built' : 'Not built'}</Badge></div>
+        <p>Generate an actual browser-runnable MVP from the completed problem, architecture, UX, quality and release decisions. The generated product is saved in this workspace and can be previewed or written to a folder on your computer.</p>
+        <div className="hero-actions">
+          <Button onClick={runProductBuild} disabled={productBusy || !codePlan}>
+            {productBusy ? 'Building product…' : generatedProduct ? 'Rebuild Runnable Product' : 'Build Runnable Product'} <PlayCircle size={17} />
+          </Button>
+        </div>
+        {productError && <div className="analysis-error" role="alert">{productError}</div>}
+      </Card>
+      {generatedProduct && <ProductBuildResult product={generatedProduct} />}
     </>
   )
 }
