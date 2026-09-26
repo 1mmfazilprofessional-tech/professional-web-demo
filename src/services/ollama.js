@@ -187,3 +187,26 @@ export async function analyzeIntegration(project, blueprint, architecture, exper
     throw new Error('The local model returned invalid integration JSON. Run the integration check again.')
   }
 }
+
+
+export async function analyzeError(errorInput, project = {}, architecture = null, codePlan = null, integration = null) {
+  const prompt = [
+    'You are a senior debugging engineer, software reliability engineer and root-cause analyst.',
+    'Analyze the supplied software failure. Do not pretend to have executed code or inspected files that were not supplied.',
+    'Separate observed evidence from hypotheses. Rank root-cause hypotheses by plausibility, identify affected areas, propose a minimal safe fix plan, verification steps and regression prevention.',
+    'Return ONLY valid JSON with keys: category, severity, confidence, summary, rootCauseHypotheses (array), affectedAreas (array), fixPlan (array), verificationSteps (array), regressionPrevention (array).',
+    'Project context: ' + JSON.stringify(project),
+    'Architecture context: ' + JSON.stringify(architecture || {}),
+    'Code plan context: ' + JSON.stringify(codePlan || {}),
+    'Integration context: ' + JSON.stringify(integration || {}),
+    'Failure input: ' + errorInput
+  ].join('\n')
+  const raw = await generate(prompt)
+  try {
+    return JSON.parse(raw)
+  } catch {
+    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
+    if (fenced) return JSON.parse(fenced[1])
+    throw new Error('The local model returned invalid debugging JSON. Run the investigation again.')
+  }
+}
