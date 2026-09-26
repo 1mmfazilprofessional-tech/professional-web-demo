@@ -231,6 +231,60 @@ export async function analyzeCodePlan(project, blueprint, architecture, experien
 }
 
 
+export async function buildProduct(project, blueprint, analysis, architecture, experience, codePlan, integration, quality, testing, deployment, presentation) {
+  const prompt = [
+    'You are the implementation agent inside a local developer workstation.',
+    'Build a REAL, runnable MVP for the project below using the completed engineering decisions.',
+    'This is not a plan. Generate the actual product source file.',
+    'Return ONLY valid JSON with this exact shape:',
+    '{',
+    '  "productName": "",',
+    '  "files": [{"path":"index.html","content":""},{"path":"README.md","content":""}],',
+    '  "runInstructions": [],',
+    '  "acceptanceCriteria": []',
+    '}',
+    'Hard requirements:',
+    '- index.html MUST be a complete standalone browser application.',
+    '- Put CSS and JavaScript inside index.html so it runs immediately when opened without npm, a server, external libraries or network access.',
+    '- Implement the actual core user journey, not a mockup or static screenshot.',
+    '- Make all important controls functional.',
+    '- Use local browser state when persistence is useful.',
+    '- Include responsive mobile/desktop layout, accessible labels, loading/empty/success/error states where relevant.',
+    '- Do not use fake buttons, placeholder lorem ipsum, TODO markers or claims that features exist when they do not.',
+    '- Do not load external scripts, fonts, APIs, images or CDNs.',
+    '- The README should explain what was generated and how to run index.html.',
+    '- Keep the MVP appropriate for the stated hackathon duration.',
+    '- If the architecture contains unnecessary backend/database/AI infrastructure for this problem, prefer the smallest working browser implementation while preserving the core outcome.',
+    '- Escape JSON correctly. Do not wrap the response in Markdown fences.',
+    'Project: ' + JSON.stringify(project),
+    'Blueprint: ' + JSON.stringify(blueprint),
+    'Problem intelligence: ' + JSON.stringify(analysis || {}),
+    'Architecture: ' + JSON.stringify(architecture || {}),
+    'Experience: ' + JSON.stringify(experience || {}),
+    'Code plan: ' + JSON.stringify(codePlan || {}),
+    'Integration: ' + JSON.stringify(integration || {}),
+    'Quality: ' + JSON.stringify(quality || {}),
+    'Testing: ' + JSON.stringify(testing || {}),
+    'Deployment: ' + JSON.stringify(deployment || {}),
+    'Presentation: ' + JSON.stringify(presentation || {}),
+    'Return a polished, complete, genuinely usable MVP.'
+  ].join('\n')
+
+  const parsed = parseJsonResponse(await generate(prompt), 'product build')
+  const result = validateStructuredResult(parsed, ['productName', 'files', 'runInstructions', 'acceptanceCriteria'], 'product build')
+  if (!Array.isArray(result.files) || result.files.length === 0) {
+    throw new Error('Local AI product build did not return any files.')
+  }
+  const files = result.files
+    .filter((file) => file && typeof file.path === 'string' && typeof file.content === 'string')
+    .slice(0, 6)
+  if (!files.some((file) => file.path === 'index.html')) {
+    throw new Error('Local AI product build did not include the required runnable index.html file.')
+  }
+  return { ...result, files }
+}
+
+
 export async function analyzeIntegration(project, blueprint, architecture, experience, codePlan) {
   const prompt = [
     'You are a senior integration engineer and reliability-focused hackathon technical lead.',
