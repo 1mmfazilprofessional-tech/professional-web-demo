@@ -255,23 +255,75 @@ function productNeedsRefinement(html, project, architecture) {
     !/(not required|not needed|unnecessary|no authentication|without authentication|no auth|without auth)/.test(scope)
 
   const interactiveCount = (lower.match(/<(button|a|summary|input|select|textarea)\\b/g) || []).length
-  const sectionCount = (lower.match(/<(section|main|article|dialog)\\b/g) || []).length
+  const sectionCount = (lower.match(/<(section|main|article|dialog|nav)\\b/g) || []).length
+  const eventCount = (lower.match(/addEventListener|onclick|onsubmit|onchange|oninput|toggleAttribute|classList\\.(add|remove|toggle)/g) || []).length
+  const visualSystemCount = (lower.match(/animation:|transition:|transform:|linear-gradient|radial-gradient|box-shadow/g) || []).length
+  const stateCount = (lower.match(/loading|empty|success|error|active|selected|disabled/g) || []).length
+  const htmlSize = html.length
   const looksLikeTemplate =
+    htmlSize < 12000 ||
     !lower.includes('<style') ||
     !lower.includes('<script') ||
     (!lower.includes(':root') && !lower.includes('--')) ||
     lower.includes('styles.css') ||
     lower.includes('scripts.js') ||
     (!authExplicitlyRequired && (lower.includes('sign up') || lower.includes('signup') || lower.includes('login'))) ||
-    interactiveCount < 3 ||
-    sectionCount < 3
+    interactiveCount < 8 ||
+    sectionCount < 5 ||
+    eventCount < 5 ||
+    visualSystemCount < 12 ||
+    stateCount < 4
 
   return looksLikeTemplate
 }
 
-export async function buildProduct(project, blueprint, analysis, architecture, experience, codePlan, integration, quality, testing, deployment, presentation) {
+async function buildProductSpecification(project, blueprint, analysis, architecture, experience, codePlan, integration, quality, testing, deployment, presentation) {
   const prompt = [
-    'You are the principal product engineer shipping the final product from this developer workstation.',
+    'You are the product director and principal UX engineer preparing a build specification for an AI coding agent.',
+    'The input is a completed hackathon engineering workflow. Convert it into a concrete product specification for the FINAL USER-FACING WEBSITE.',
+    'This is not a workstation dashboard. It is the actual solution to the supplied problem.',
+    'Return ONLY valid JSON with this exact shape:',
+    '{',
+    '  "productPositioning": {"name":"","oneLiner":"","audience":"","primaryOutcome":""},',
+    '  "visualDirection": {"mood":"","palette":"","layout":"","heroTreatment":"","motion":"","visualization":""},',
+    '  "primaryJourney": [{"step":"","userAction":"","systemResponse":""}],',
+    '  "features": [{"name":"","purpose":"","interaction":"","stateVariants":[],"priority":"core|supporting"}],',
+    '  "screensOrSections": [{"name":"","purpose":"","content":[],"primaryAction":"","secondaryActions":[]}],',
+    '  "dataAndState": [{"entity":"","fields":[],"stateTransitions":[]}],',
+    '  "advancedInteractions": [{"name":"","trigger":"","behavior":"","value":""}],',
+    '  "aiOpportunities": [{"name":"","userValue":"","honestDemoBehavior":""}],',
+    '  "qualityBar": {"responsive":[], "accessibility":[], "feedbackStates":[], "antiPatterns":[]}',
+    '}',
+    'Use the actual problem and previous engineering outputs. Select a few high-value innovations rather than random feature bloat.',
+    'Every feature must have a meaningful user-visible interaction. Prefer realistic local/demo behavior when external infrastructure is not available.',
+    'If AI, maps, realtime, payments, authentication, notifications or external APIs are truly required, describe the user-facing flow honestly; never fake a successful external integration.',
+    'The final site should have enough product depth to feel like a real hackathon submission, not a landing page or template.',
+    'Project: ' + JSON.stringify(project),
+    'Blueprint: ' + JSON.stringify(blueprint),
+    'Problem intelligence: ' + JSON.stringify(analysis || {}),
+    'Architecture: ' + JSON.stringify(architecture || {}),
+    'Experience: ' + JSON.stringify(experience || {}),
+    'Code plan: ' + JSON.stringify(codePlan || {}),
+    'Integration: ' + JSON.stringify(integration || {}),
+    'Quality: ' + JSON.stringify(quality || {}),
+    'Testing: ' + JSON.stringify(testing || {}),
+    'Release: ' + JSON.stringify(deployment || {}),
+    'Presentation: ' + JSON.stringify(presentation || {})
+  ].join('\\n')
+
+  const parsed = parseJsonResponse(await generate(prompt, MODEL, REQUEST_TIMEOUT_MS), 'product specification')
+  return validateStructuredResult(parsed, ['features','screensOrSections','primaryJourney'], 'product specification')
+}
+
+export async function buildProduct(project, blueprint, analysis, architecture, experience, codePlan, integration, quality, testing, deployment, presentation) {
+  const productSpec = await buildProductSpecification(project, blueprint, analysis, architecture, experience, codePlan, integration, quality, testing, deployment, presentation)
+
+  const prompt = [
+    'You are the principal product engineer shipping the FINAL REAL WEBSITE from this developer workstation.',
+    'The website you return is the actual solution a student team will present to judges/users. It must feel like a serious product, not an AI demo, applet, template, dashboard shell or documentation page.',
+    'Use the product specification below as a binding product contract. Implement its core journey, meaningful supporting features, interactions, states and visual direction.',
+    'Do not merely mention features in text. Implement them in HTML/CSS/JavaScript so users can actually use or explore them.',
+    'Product specification: ' + JSON.stringify(productSpec),
     'Build the ACTUAL final user-facing MVP, not a plan, wireframe, report or template.',
     'The product must be polished enough for a college presentation, hackathon demo and developer portfolio.',
     'Return ONLY one complete standalone index.html. No Markdown fences, no commentary, no separate CSS/JS files.',
@@ -326,7 +378,9 @@ export async function buildProduct(project, blueprint, analysis, architecture, e
       'Preserve the actual problem and required functionality, but remove generic template behavior and unnecessary features.',
       'If authentication, accounts or settings are not explicitly required by the architecture, remove them completely.',
       'The first screen must immediately show the actual product purpose and main action.',
-      'Compare the supplied requirements against the current HTML. Add the missing meaningful capabilities rather than merely changing colors.',
+      'Compare the supplied product specification and requirements against the current HTML. Add missing meaningful capabilities rather than merely changing colors.',
+      'The refined result must be a substantial website, normally with 5+ major sections/views, 8+ meaningful interactive controls, multiple user-visible states, and a coherent primary journey. Do not satisfy these requirements with repeated decorative cards.',
+      'Preserve the strongest working interactions already present while repairing incomplete behavior.',
       'Make the primary journey complete and make meaningful feature cards, navigation items and status elements interactive. Clicking them must reveal information, navigate, change state, open a panel/modal, or perform a real local action.',
       'Add a compact, problem-appropriate dashboard/summary only when it helps the user understand useful live product state.',
       'Where the architecture genuinely requires email, authentication, APIs, AI, backend or database behavior, preserve that requirement and represent the actual flow honestly. Never invent successful external actions.',
