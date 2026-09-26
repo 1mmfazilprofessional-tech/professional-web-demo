@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#070a12">
+<meta name="description" content="AURORA — a cinematic electric mobility product experience generated as a DevStation showcase.">
+<title>AURORA — Electric Mobility Experience</title>
+<style>
+:root{
+  --bg:#070a12;--bg2:#0c1220;--surface:rgba(17,24,39,.72);--surface2:rgba(255,255,255,.055);
+  --text:#f7f9ff;--muted:#9aa5bd;--line:rgba(255,255,255,.1);--accent:#7c5cff;--accent2:#25e6b4;
+  --warm:#ff8a4c;--shadow:0 30px 90px rgba(0,0,0,.42);--radius:26px;--max:1180px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:
+ radial-gradient(circle at 78% 8%,rgba(124,92,255,.18),transparent 28rem),
+ radial-gradient(circle at 12% 22%,rgba(37,230,180,.08),transparent 24rem),
+ linear-gradient(180deg,var(--bg),#080b14 55%,#060810);color:var(--text);
+ font:15px/1.6 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+ overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+button,input{font:inherit}
+button{cursor:pointer}
+::selection{background:rgba(124,92,255,.35)}
+.progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));z-index:1000}
+#space{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;opacity:.65;z-index:-1}
+.wrap{width:min(var(--max),calc(100% - 40px));margin:auto}
+.nav{position:fixed;top:18px;left:50%;transform:translateX(-50%);width:min(1120px,calc(100% - 28px));display:flex;align-items:center;justify-content:space-between;padding:11px 13px 11px 18px;background:rgba(8,11,20,.72);backdrop-filter:blur(18px);border:1px solid var(--line);border-radius:18px;z-index:100;box-shadow:0 14px 50px rgba(0,0,0,.22)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.12em;font-size:13px}
+.brand-mark{width:28px;height:28px;border-radius:9px;background:conic-gradient(from 210deg,var(--accent),var(--accent2),var(--warm),var(--accent));box-shadow:0 0 24px rgba(124,92,255,.35)}
+.navlinks{display:flex;gap:24px;color:#b9c1d3;font-size:13px}
+.navlinks a:hover{color:#fff}
+.navcta{border:0;border-radius:12px;padding:10px 15px;background:#fff;color:#080a10;font-weight:750}
+.hero{min-height:100vh;display:grid;align-items:center;padding:150px 0 80px;position:relative}
+.hero-grid{display:grid;grid-template-columns:.95fr 1.05fr;gap:50px;align-items:center}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;color:#c7cdfa;font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:800}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--accent2);box-shadow:0 0 16px var(--accent2)}
+h1{font-size:clamp(50px,7vw,92px);line-height:.92;letter-spacing:-.055em;margin:20px 0 25px;max-width:780px}
+.gradient{background:linear-gradient(110deg,#fff 15%,#b9aaff 52%,#6ff5d3 90%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{max-width:590px;color:var(--muted);font-size:18px;line-height:1.75}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:32px}
+.btn{border:1px solid var(--line);border-radius:14px;padding:13px 18px;background:rgba(255,255,255,.05);color:#fff;font-weight:750;transition:.25s transform,.25s background,.25s border-color}
+.btn:hover{transform:translateY(-2px);background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.22)}
+.btn.primary{background:linear-gradient(135deg,#8b70ff,#5d47d8);border-color:transparent;box-shadow:0 12px 34px rgba(124,92,255,.28)}
+.btn.primary:hover{box-shadow:0 18px 45px rgba(124,92,255,.4)}
+.micro{display:flex;gap:22px;margin-top:34px;color:#7f8aa2;font-size:12px}
+.micro strong{display:block;color:#e8ecf5;font-size:16px;margin-bottom:2px}
+.stage{position:relative;min-height:570px;display:grid;place-items:center}
+.glow{position:absolute;width:390px;height:390px;border-radius:50%;background:radial-gradient(circle,rgba(124,92,255,.26),transparent 68%);filter:blur(10px)}
+.vehicle-wrap{position:relative;width:min(610px,100%);height:390px;perspective:1000px;display:grid;place-items:center}
+.platform{position:absolute;bottom:54px;width:86%;height:70px;border-radius:50%;background:radial-gradient(ellipse,rgba(124,92,255,.28),rgba(124,92,255,.04) 55%,transparent 72%);transform:rotateX(70deg);box-shadow:0 0 90px rgba(124,92,255,.15)}
+.car{position:relative;width:410px;height:175px;transform-style:preserve-3d;transform:rotateX(7deg) rotateY(-13deg);animation:float 5s ease-in-out infinite;transition:.5s transform}
+.car-body{position:absolute;left:40px;top:61px;width:330px;height:78px;border-radius:58% 42% 22% 22%/70% 70% 30% 30%;background:linear-gradient(150deg,#f7f9ff,#c7cbd8 38%,#6d7180 68%,#272a33);box-shadow:inset 0 8px 20px rgba(255,255,255,.48),inset 0 -14px 24px rgba(0,0,0,.28),0 30px 50px rgba(0,0,0,.55);transform:skewX(-10deg)}
+.roof{position:absolute;left:122px;top:25px;width:180px;height:70px;border-radius:90px 110px 10px 10px;background:linear-gradient(135deg,#20283a,#0a101b 65%);border:2px solid rgba(255,255,255,.16);transform:skewX(-10deg);box-shadow:inset 0 0 25px rgba(124,92,255,.12)}
+.glass{position:absolute;left:139px;top:32px;width:74px;height:47px;border-radius:50px 10px 5px 5px;background:linear-gradient(135deg,rgba(155,218,255,.4),rgba(12,20,36,.85));transform:skewX(-9deg);border-right:1px solid rgba(255,255,255,.2)}
+.glass.r{left:215px;border-radius:10px 50px 5px 5px}
+.light{position:absolute;right:40px;top:78px;width:55px;height:14px;border-radius:20px;background:linear-gradient(90deg,#fff,#74fff0);box-shadow:0 0 20px #7dfff0;transform:skewX(-18deg)}
+.light.l{left:45px;right:auto}
+.wheel{position:absolute;top:111px;width:62px;height:62px;border-radius:50%;background:radial-gradient(circle,#1b202b 0 22%,#090b10 24% 45%,#535969 47% 53%,#0a0c11 55%);box-shadow:0 10px 18px rgba(0,0,0,.55);animation:wheelspin 8s linear infinite}
+.wheel.a{left:70px}.wheel.b{right:72px}
+.beam{position:absolute;right:5px;top:68px;width:160px;height:110px;background:linear-gradient(90deg,transparent,rgba(117,255,240,.12));filter:blur(14px);transform:skewX(-20deg)}
+.spec-card{position:absolute;right:-5px;bottom:0;width:180px;padding:14px;background:rgba(12,17,29,.76);border:1px solid var(--line);border-radius:18px;backdrop-filter:blur(14px);box-shadow:var(--shadow)}
+.spec-card small{color:#7e899f}.spec-card strong{display:block;font-size:28px;line-height:1.1;margin:4px 0}
+@keyframes float{50%{transform:rotateX(7deg) rotateY(-13deg) translateY(-12px)}}@keyframes wheelspin{to{transform:rotate(360deg)}}
+.section{padding:110px 0}.section-head{display:flex;align-items:end;justify-content:space-between;gap:30px;margin-bottom:35px}.kicker{color:var(--accent2);font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:800}
+h2{font-size:clamp(34px,5vw,58px);letter-spacing:-.04em;line-height:1;margin:10px 0 0}.section-head p{max-width:470px;color:var(--muted);margin:0}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.metric{padding:28px 22px;border-right:1px solid var(--line)}.metric:last-child{border-right:0}.metric b{font-size:36px;letter-spacing:-.05em}.metric span{display:block;color:var(--muted);font-size:12px;margin-top:5px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{padding:26px;background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.025));border:1px solid var(--line);border-radius:var(--radius);min-height:230px;position:relative;overflow:hidden;transition:.3s transform,.3s border-color}
+.card:hover{transform:translateY(-5px);border-color:rgba(124,92,255,.45)}.icon{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;background:rgba(124,92,255,.12);border:1px solid rgba(124,92,255,.22);color:#b9aaff;font-size:20px}.card h3{font-size:21px;margin:22px 0 9px}.card p{color:var(--muted);margin:0}.card:after{content:"";position:absolute;width:120px;height:120px;border-radius:50%;right:-60px;bottom:-60px;background:radial-gradient(circle,rgba(37,230,180,.13),transparent 65%)}
+.experience{display:grid;grid-template-columns:1fr 1fr;gap:18px}.panel{border:1px solid var(--line);background:rgba(255,255,255,.035);border-radius:var(--radius);overflow:hidden}.panel-main{min-height:450px;padding:34px;position:relative;background:radial-gradient(circle at 80% 20%,rgba(124,92,255,.18),transparent 30%),linear-gradient(145deg,rgba(255,255,255,.06),transparent)}
+.panel-main h3{font-size:30px;margin:8px 0}.panel-main p{color:var(--muted);max-width:510px}.orbit{position:absolute;right:6%;bottom:12%;width:240px;height:240px;border:1px solid rgba(255,255,255,.12);border-radius:50%;transform:rotateX(65deg);box-shadow:0 0 70px rgba(124,92,255,.12)}.orbit:before,.orbit:after{content:"";position:absolute;inset:25px;border:1px dashed rgba(124,92,255,.3);border-radius:50%}.orb{position:absolute;width:18px;height:18px;border-radius:50%;background:var(--accent2);box-shadow:0 0 25px var(--accent2);top:5px;left:50%;transform:translateX(-50%);animation:orbit 5s linear infinite}@keyframes orbit{to{transform:translateX(-50%) rotate(360deg) translateY(95px) rotate(-360deg)}}
+.timeline{padding:34px}.step{display:grid;grid-template-columns:38px 1fr;gap:14px;padding:18px 0;border-bottom:1px solid var(--line)}.step:last-child{border-bottom:0}.num{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#171e2d;border:1px solid var(--line);color:#c7cdfa;font-size:12px;font-weight:800}.step h4{margin:0 0 4px}.step p{margin:0;color:var(--muted);font-size:13px}
+.config{display:grid;grid-template-columns:1fr 1fr;gap:18px}.config-visual{min-height:500px;display:grid;place-items:center;background:radial-gradient(circle at 50% 50%,rgba(124,92,255,.2),transparent 50%),#0a0f1a}.config-visual .car{transform:scale(.86) rotateX(7deg) rotateY(-13deg)}.controls{padding:34px}.control{padding:22px 0;border-bottom:1px solid var(--line)}.control:first-child{padding-top:0}.control label{display:flex;justify-content:space-between;font-weight:750;margin-bottom:12px}.control small{color:var(--muted)}input[type=range]{width:100%;accent-color:var(--accent)}.swatches{display:flex;gap:10px}.swatch{width:36px;height:36px;border-radius:50%;border:2px solid transparent;box-shadow:0 0 0 1px var(--line);transition:.2s transform}.swatch.active{transform:scale(1.12);box-shadow:0 0 0 2px #fff,0 0 0 4px rgba(124,92,255,.5)}.quote{font-size:40px;letter-spacing:-.04em;line-height:1.15;margin:25px 0}.price{display:flex;justify-content:space-between;align-items:end}.price strong{font-size:44px;letter-spacing:-.06em}
+.cta{padding:80px 40px;border:1px solid rgba(124,92,255,.3);border-radius:32px;background:radial-gradient(circle at 80% 0,rgba(124,92,255,.22),transparent 40%),linear-gradient(135deg,rgba(255,255,255,.065),rgba(255,255,255,.02));text-align:center}.cta p{color:var(--muted);max-width:600px;margin:15px auto 28px}.lead-form{display:flex;justify-content:center;gap:10px;max-width:580px;margin:auto}.lead-form input{flex:1;min-width:0;padding:14px 16px;border:1px solid var(--line);border-radius:13px;background:rgba(0,0,0,.2);color:#fff;outline:none}.lead-form input:focus{border-color:var(--accent)}
+footer{padding:50px 0 70px;color:#68738a;font-size:12px;display:flex;justify-content:space-between;border-top:1px solid var(--line)}
+.toast{position:fixed;right:20px;bottom:20px;padding:13px 16px;border-radius:14px;background:#151d2c;border:1px solid var(--line);box-shadow:var(--shadow);transform:translateY(120px);opacity:0;transition:.3s;z-index:200}.toast.show{transform:none;opacity:1}
+.reveal{opacity:0;transform:translateY(24px);transition:.8s ease}.reveal.visible{opacity:1;transform:none}
+@media(max-width:900px){.hero-grid,.experience,.config{grid-template-columns:1fr}.hero{padding-top:125px}.stage{min-height:460px}.cards{grid-template-columns:1fr 1fr}.metrics{grid-template-columns:1fr 1fr}.metric:nth-child(2){border-right:0}.metric:nth-child(-n+2){border-bottom:1px solid var(--line)}.navlinks{display:none}.section-head{display:block}.section-head p{margin-top:15px}.car{transform:scale(.8) rotateX(7deg) rotateY(-13deg)}}
+@media(max-width:560px){.wrap{width:min(var(--max),calc(100% - 24px))}.nav{top:10px}.navcta{padding:9px 11px}.hero{padding-top:105px}.hero-grid{gap:10px}h1{font-size:53px}.lede{font-size:16px}.micro{gap:14px}.stage{min-height:360px}.vehicle-wrap{height:320px}.car{transform:scale(.61) rotateX(7deg) rotateY(-13deg)}.spec-card{right:0;bottom:0}.cards,.metrics{grid-template-columns:1fr}.metric{border-right:0;border-bottom:1px solid var(--line)}.metric:last-child{border-bottom:0}.section{padding:78px 0}.panel-main{min-height:390px}.quote{font-size:30px}.lead-form{flex-direction:column}.lead-form .btn{width:100%}footer{display:block}.config-visual{min-height:360px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.reveal{opacity:1;transform:none;transition:none}.car,.wheel,.orb{animation:none}.btn,.card{transition:none}}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<canvas id="space" aria-hidden="true"></canvas>
+
+<header class="nav">
+  <a class="brand" href="#top"><span class="brand-mark"></span>AURORA</a>
+  <nav class="navlinks" aria-label="Primary">
+    <a href="#experience">Experience</a><a href="#technology">Technology</a><a href="#configure">Configure</a>
+  </nav>
+  <a class="navcta" href="#configure">Build yours</a>
+</header>
+
+<main id="top">
+<section class="hero">
+ <div class="wrap hero-grid">
+  <div class="reveal">
+   <span class="eyebrow"><i class="dot"></i>Electric mobility, reimagined</span>
+   <h1>Move beyond <span class="gradient">ordinary.</span></h1>
+   <p class="lede">A cinematic product experience for a next-generation electric platform — engineered around instant response, intelligent energy and a cabin that feels like a private interface.</p>
+   <div class="actions"><a class="btn primary" href="#configure">Explore the platform ↗</a><a class="btn" href="#technology">See the technology</a></div>
+   <div class="micro"><div><strong>520 km</strong>estimated range</div><div><strong>2.9 s</strong>0–100 km/h</div><div><strong>800 V</strong>fast-charge architecture</div></div>
+  </div>
+  <div class="stage reveal" aria-label="Interactive 3D-style vehicle showcase">
+   <div class="glow"></div>
+   <div class="vehicle-wrap">
+    <div class="platform"></div><div class="beam"></div>
+    <div class="car" id="heroCar" aria-hidden="true">
+      <div class="roof"></div><div class="glass"></div><div class="glass r"></div>
+      <div class="car-body"></div><div class="light l"></div><div class="light"></div>
+      <div class="wheel a"></div><div class="wheel b"></div>
+    </div>
+    <div class="spec-card"><small>Signature powertrain</small><strong>612 hp</strong><small>Dual motor · AWD</small></div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="section" id="technology">
+ <div class="wrap">
+  <div class="section-head reveal"><div><span class="kicker">The numbers</span><h2>Quietly extreme.</h2></div><p>Every interaction is designed to turn technical capability into an understandable, confident product decision.</p></div>
+  <div class="metrics reveal">
+   <div class="metric"><b>612</b><span>peak horsepower</span></div><div class="metric"><b>3,100</b><span>Nm system torque</span></div><div class="metric"><b>18 min</b><span>10–80% fast charge</span></div><div class="metric"><b>0.21</b><span>drag coefficient</span></div>
+  </div>
+  <div class="cards" style="margin-top:18px">
+   <article class="card reveal"><div class="icon">✦</div><h3>Predictive energy</h3><p>Route-aware energy management continuously balances performance and range before you need to think about it.</p></article>
+   <article class="card reveal"><div class="icon">◈</div><h3>Adaptive cockpit</h3><p>A calm interface surfaces only the information that matters, with motion and feedback tuned for low cognitive load.</p></article>
+   <article class="card reveal"><div class="icon">⌁</div><h3>Instant response</h3><p>Dual-motor torque arrives immediately, while the chassis adapts in real time to keep the experience composed.</p></article>
+  </div>
+ </div>
+</section>
+
+<section class="section" id="experience">
+ <div class="wrap">
+  <div class="section-head reveal"><div><span class="kicker">Customer experience</span><h2>From first glance<br>to first drive.</h2></div><p>A deliberate conversion journey: discover the idea, understand the proof, personalize the product, then take the next step.</p></div>
+  <div class="experience">
+   <article class="panel panel-main reveal"><span class="eyebrow">01 / Presence</span><h3>Designed to hold attention.</h3><p>The visual system combines depth, motion, light and restrained color to make the product feel physical without overwhelming the message.</p><div class="orbit"><span class="orb"></span></div></article>
+   <article class="panel timeline reveal">
+    <div class="step"><div class="num">01</div><div><h4>Discover</h4><p>Lead with a single proposition and immediate visual proof.</p></div></div>
+    <div class="step"><div class="num">02</div><div><h4>Understand</h4><p>Translate engineering specifications into outcomes customers can feel.</p></div></div>
+    <div class="step"><div class="num">03</div><div><h4>Configure</h4><p>Let customers personalize the experience without losing context.</p></div></div>
+    <div class="step"><div class="num">04</div><div><h4>Convert</h4><p>Make the next action obvious, lightweight and confidence-building.</p></div></div>
+   </article>
+  </div>
+ </div>
+</section>
+
+<section class="section" id="configure">
+ <div class="wrap">
+  <div class="section-head reveal"><div><span class="kicker">Your configuration</span><h2>Make it yours.</h2></div><p>Interactive state is stored locally so the experience survives a refresh — no account or backend is required for this showcase.</p></div>
+  <div class="config panel reveal">
+   <div class="config-visual">
+    <div class="vehicle-wrap"><div class="platform"></div><div class="car" id="configCar"><div class="roof"></div><div class="glass"></div><div class="glass r"></div><div class="car-body"></div><div class="light l"></div><div class="light"></div><div class="wheel a"></div><div class="wheel b"></div></div></div>
+   </div>
+   <div class="controls">
+    <div class="control"><label>Exterior <small id="colorName">Aurora Silver</small></label><div class="swatches"><button class="swatch active" data-color="silver" style="background:linear-gradient(135deg,#fff,#737887)" aria-label="Aurora Silver"></button><button class="swatch" data-color="violet" style="background:linear-gradient(135deg,#c6b8ff,#5039aa)" aria-label="Electric Violet"></button><button class="swatch" data-color="mint" style="background:linear-gradient(135deg,#cafff4,#299c8a)" aria-label="Glacier Mint"></button><button class="swatch" data-color="graphite" style="background:linear-gradient(135deg,#606875,#090b10)" aria-label="Graphite"></button></div></div>
+    <div class="control"><label>Performance <span id="perfValue">Balanced</span></label><input id="performance" type="range" min="1" max="3" value="2"><small>Adjust the character from efficient touring to maximum response.</small></div>
+    <div class="control"><label>Estimated range <strong id="rangeValue">520 km</strong></label><small>Based on your selected performance profile.</small></div>
+    <div class="control price"><div><small>Starting from</small><strong id="price">₹ 74.9L</strong></div><button class="btn primary" id="reserve">Request a private preview</button></div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="section">
+ <div class="wrap">
+  <div class="cta reveal">
+   <span class="kicker">Next step</span>
+   <div class="quote">See what intelligent mobility feels like.</div>
+   <p>Leave your details and the experience will remember your configuration locally. In a production build, this CTA can connect to a Node.js API, CRM or authenticated workflow when the architecture requires it.</p>
+   <form class="lead-form" id="leadForm"><input id="email" type="email" placeholder="you@example.com" aria-label="Email address" required><button class="btn primary" type="submit">Request access →</button></form>
+  </div>
+ </div>
+</section>
+</main>
+
+<footer class="wrap"><span>AURORA / DevStation showcase</span><span>Designed as a full product-experience demonstration · <span id="year"></span></span></footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.classList.remove('show'),2800)};
+$('#year').textContent=new Date().getFullYear();
+
+const canvas=$('#space'),ctx=canvas.getContext('2d');let dots=[];
+function resize(){canvas.width=innerWidth*devicePixelRatio;canvas.height=innerHeight*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);dots=Array.from({length:Math.min(110,Math.floor(innerWidth/11))},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*1.4+.2,v:Math.random()*.18+.03,a:Math.random()*.6+.15}))}
+function particles(){ctx.clearRect(0,0,innerWidth,innerHeight);for(const d of dots){d.y-=d.v;if(d.y<0)d.y=innerHeight;ctx.globalAlpha=d.a;ctx.fillStyle='#b8b4ff';ctx.beginPath();ctx.arc(d.x,d.y,d.r,0,Math.PI*2);ctx.fill()}requestAnimationFrame(particles)}addEventListener('resize',resize);resize();particles();
+
+addEventListener('scroll',()=>{const h=document.documentElement.scrollHeight-innerHeight;$('#progress').style.width=(scrollY/Math.max(1,h)*100)+'%'});
+const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')}),{threshold:.12});$$('.reveal').forEach(e=>observer.observe(e));
+
+const names={silver:'Aurora Silver',violet:'Electric Violet',mint:'Glacier Mint',graphite:'Graphite'};
+const finishes={
+ silver:['#f7f9ff','#c7cbd8','#6d7180','#272a33'],
+ violet:['#eeeaff','#b6a8e8','#6754a4','#27203f'],
+ mint:['#effffc','#b6e8df','#4b958b','#193c3b'],
+ graphite:['#b9bfca','#646b79','#303540','#111318']
+};
+function setFinish(name){
+ const c=finishes[name];['#heroCar','#configCar'].forEach(sel=>{const el=$(sel);if(!el)return;const body=el.querySelector('.car-body');body.style.background=`linear-gradient(150deg,${c[0]},${c[1]} 38%,${c[2]} 68%,${c[3]})`;});
+ $('#colorName').textContent=names[name];localStorage.setItem('aurora-color',name);
+}
+$$('.swatch').forEach(b=>b.addEventListener('click',()=>{$$('.swatch').forEach(x=>x.classList.remove('active'));b.classList.add('active');setFinish(b.dataset.color)}));
+const saved=localStorage.getItem('aurora-color');if(saved){const b=$('.swatch[data-color="'+saved+'"]');if(b){b.classList.add('active');$('.swatch.active:not([data-color="'+saved+'"])')?.classList.remove('active')}setFinish(saved)}
+
+function updatePerformance(){
+ const v=+$('#performance').value;
+ const data=[['Efficiency',590,'₹ 74.9L'],['Balanced',520,'₹ 78.5L'],['Performance',475,'₹ 84.2L']][v-1];
+ $('#perfValue').textContent=data[0];$('#rangeValue').textContent=data[1]+' km';$('#price').textContent=data[2];localStorage.setItem('aurora-performance',v)
+}
+$('#performance').addEventListener('input',updatePerformance);const pv=localStorage.getItem('aurora-performance');if(pv)$('#performance').value=pv;updatePerformance();
+
+$('#reserve').addEventListener('click',()=>{toast('Your configuration is saved. Private preview request prepared.');localStorage.setItem('aurora-requested','1')});
+$('#leadForm').addEventListener('submit',e=>{e.preventDefault();const email=$('#email').value.trim();if(!email)return;localStorage.setItem('aurora-email',email);toast('Thanks — your request is saved for this demo.');e.target.reset()});
+const savedEmail=localStorage.getItem('aurora-email');if(savedEmail)$('#email').value=savedEmail;
+
+addEventListener('mousemove',e=>{const car=$('#heroCar');if(!car||innerWidth<900)return;const x=(e.clientX/innerWidth-.5)*10,y=(e.clientY/innerHeight-.5)*-5;car.style.transform=`rotateX(${7+y}deg) rotateY(${-13+x}deg) translateY(-6px)`});
+</script>
+</body>
+</html>
