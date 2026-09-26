@@ -79,8 +79,8 @@ function parseJsonResponse(raw, label) {
 
   const cleaned = raw
     .trim()
-    .replace(/^\`\`\`(?:json)?\s*/i, '')
-    .replace(/\s*\`\`\`$/i, '')
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
     .trim()
 
   try {
@@ -102,24 +102,14 @@ function parseJsonResponse(raw, label) {
   }
 }
 
-function requireArray(value, key, label) {
-  if (!Array.isArray(value[key])) throw new Error(`Local AI ${label} is missing the ${key} array.`)
-}
-
-function requireObject(value, key, label) {
-  if (!value || typeof value[key] !== 'object' || value[key] === null || Array.isArray(value[key])) {
-    throw new Error(`Local AI ${label} is missing the ${key} object.`)
-  }
-}
-
 function validateStructuredResult(value, requiredKeys, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`Local AI \${label} returned an invalid structure.`)
+    throw new Error(`Local AI ${label} returned an invalid structure.`)
   }
 
   for (const key of requiredKeys) {
     if (!(key in value)) {
-      throw new Error(`Local AI \${label} is missing the \${key} field.`)
+      throw new Error(`Local AI ${label} is missing the ${key} field.`)
     }
   }
 
