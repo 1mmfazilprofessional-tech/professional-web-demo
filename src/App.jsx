@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Activity,
   ArrowRight,
@@ -53,8 +53,27 @@ import Button from './components/ui/Button'
 import Card from './components/ui/Card'
 import Badge from './components/ui/Badge'
 import Input from './components/ui/Input'
-import { analyzeArchitecture, analyzeExperience, analyzeCodePlan, analyzeProblem, askOllama, isOllamaConfigured } from './services/ollama'
+import { analyzeArchitecture, analyzeExperience, analyzeCodePlan, analyzeProblem, askOllama, checkOllamaHealth, isOllamaConfigured } from './services/ollama'
 import './styles/design-system.css'
+
+const WORKSPACE_STORAGE_KEY = 'devstation.workspace.v1'
+
+function loadWorkspace() {
+  try {
+    const raw = window.localStorage.getItem(WORKSPACE_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function saveWorkspace(snapshot) {
+  try {
+    window.localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(snapshot))
+  } catch {
+    // Storage can be unavailable in private/restricted browser contexts.
+  }
+}
 
 const navItems = [
   ['dashboard', 'Dashboard', LayoutDashboard],
@@ -85,9 +104,10 @@ const stageItems = [
 ]
 
 function App() {
-  const [active, setActive] = useState('dashboard')
+  const [active, setActive] = useState(() => loadWorkspace()?.active || 'dashboard')
   const [menuOpen, setMenuOpen] = useState(false)
-  const [project, setProject] = useState({
+  const savedWorkspace = loadWorkspace()
+  const [project, setProject] = useState(() => savedWorkspace?.project || {
     title: '',
     problem: '',
     users: '',
@@ -96,47 +116,72 @@ function App() {
     teamSize: '4',
     constraints: '',
   })
-  const [created, setCreated] = useState(false)
+  const [created, setCreated] = useState(() => Boolean(savedWorkspace?.created))
+  const [ollamaHealth, setOllamaHealth] = useState({ ok: false, model: 'qwen2.5-coder:7b', error: 'Not checked yet.' })
   const [aiPrompt, setAiPrompt] = useState('')
   const [aiResponse, setAiResponse] = useState('')
   const [aiBusy, setAiBusy] = useState(false)
   const [notice, setNotice] = useState('')
-  const [analysis, setAnalysis] = useState(null)
+  const [analysis, setAnalysis] = useState(() => savedWorkspace?.analysis ?? null)
   const [analysisBusy, setAnalysisBusy] = useState(false)
   const [analysisError, setAnalysisError] = useState('')
-  const [architecture, setArchitecture] = useState(null)
+  const [architecture, setArchitecture] = useState(() => savedWorkspace?.architecture ?? null)
   const [architectureBusy, setArchitectureBusy] = useState(false)
   const [architectureError, setArchitectureError] = useState('')
-  const [experience, setExperience] = useState(null)
+  const [experience, setExperience] = useState(() => savedWorkspace?.experience ?? null)
   const [experienceBusy, setExperienceBusy] = useState(false)
   const [experienceError, setExperienceError] = useState('')
-  const [codePlan, setCodePlan] = useState(null)
+  const [codePlan, setCodePlan] = useState(() => savedWorkspace?.codePlan ?? null)
   const [codeBusy, setCodeBusy] = useState(false)
   const [codeError, setCodeError] = useState('')
-  const [integration, setIntegration] = useState(null)
+  const [integration, setIntegration] = useState(() => savedWorkspace?.integration ?? null)
   const [integrationBusy, setIntegrationBusy] = useState(false)
   const [integrationError, setIntegrationError] = useState('')
-  const [debugInput, setDebugInput] = useState('')
-  const [debugResult, setDebugResult] = useState(null)
+  const [debugInput, setDebugInput] = useState(() => savedWorkspace?.debugInput ?? '')
+  const [debugResult, setDebugResult] = useState(() => savedWorkspace?.debugResult ?? null)
   const [debugBusy, setDebugBusy] = useState(false)
   const [debugError, setDebugError] = useState('')
-  const [quality, setQuality] = useState(null)
+  const [quality, setQuality] = useState(() => savedWorkspace?.quality ?? null)
   const [qualityBusy, setQualityBusy] = useState(false)
   const [qualityError, setQualityError] = useState('')
-  const [testing, setTesting] = useState(null)
+  const [testing, setTesting] = useState(() => savedWorkspace?.testing ?? null)
   const [testingBusy, setTestingBusy] = useState(false)
   const [testingError, setTestingError] = useState('')
-  const [repoOps, setRepoOps] = useState(null)
+  const [repoOps, setRepoOps] = useState(() => savedWorkspace?.repoOps ?? null)
   const [repoOpsBusy, setRepoOpsBusy] = useState(false)
   const [repoOpsError, setRepoOpsError] = useState('')
-  const [deployment, setDeployment] = useState(null)
+  const [deployment, setDeployment] = useState(() => savedWorkspace?.deployment ?? null)
   const [deploymentBusy, setDeploymentBusy] = useState(false)
   const [deploymentError, setDeploymentError] = useState('')
-  const [presentation, setPresentation] = useState(null)
+  const [presentation, setPresentation] = useState(() => savedWorkspace?.presentation ?? null)
   const [presentationBusy, setPresentationBusy] = useState(false)
   const [presentationError, setPresentationError] = useState('')
 
   const blueprint = useMemo(() => buildBlueprint(project, analysis), [project, analysis])
+
+  useEffect(() => {
+    saveWorkspace({
+      active,
+      project,
+      created,
+      analysis,
+      architecture,
+      experience,
+      codePlan,
+      integration,
+      debugInput,
+      debugResult,
+      quality,
+      testing,
+      repoOps,
+      deployment,
+      presentation,
+    })
+  }, [active, project, created, analysis, architecture, experience, codePlan, integration, debugInput, debugResult, quality, testing, repoOps, deployment, presentation])
+
+  useEffect(() => {
+    checkOllamaHealth().then(setOllamaHealth)
+  }, [])
 
   const go = (section) => {
     setActive(section)
@@ -292,7 +337,7 @@ function App() {
 
         <div className="header-status">
           <span><Activity size={15} /> Developer mode</span>
-          <span>{isOllamaConfigured() ? 'Ollama ready' : 'Ollama connector ready'}</span>
+          <span>{ollamaHealth.ok ? `Ollama connected · ${ollamaHealth.model}` : 'Ollama needs local proxy'}</span>
         </div>
 
         <button
@@ -361,7 +406,7 @@ function App() {
               response={aiResponse}
               busy={aiBusy}
               run={runLocalAI}
-              configured={isOllamaConfigured()}
+              configured={ollamaHealth.ok}
             />
           )}
         </main>
@@ -443,6 +488,12 @@ function LocalAI({ prompt, setPrompt, response, busy, run, configured }) {
   return (
     <>
       <PageHeader eyebrow="LOCAL AI" title="Use your laptop's local model." description="Send focused engineering questions to Ollama through the local workstation proxy." />
+      {!configured && (
+        <Card>
+          <div className="card-heading"><span><AlertTriangle size={17} /> Local AI connection</span><Badge color="warning">Needs attention</Badge></div>
+          <p>Start Ollama and run <code>local-ai-proxy/start-proxy.bat</code>, then reload this page. The workstation will not claim the connection is ready until the local proxy responds.</p>
+        </Card>
+      )}
       <Card>
         <div className="card-heading"><span><BrainCircuit size={17} /> Ollama</span><Badge color={configured ? 'success' : 'warning'}>{configured ? 'Configured' : 'Not configured'}</Badge></div>
         <textarea className="workstation-textarea" rows="6" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Ask for architecture reasoning, debugging help, implementation guidance, or a critical review..." />

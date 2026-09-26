@@ -3,8 +3,32 @@ const SAME_ORIGIN_PROXY_URL = '/api/ollama'
 const DIRECT_OLLAMA_URL = 'http://127.0.0.1:11434/api/generate'
 const MODEL = 'qwen2.5-coder:7b'
 
+export function getOllamaConfig() {
+  return {
+    model: MODEL,
+    proxyUrl: LOCAL_PROXY_URL,
+    directUrl: DIRECT_OLLAMA_URL,
+  }
+}
+
 export function isOllamaConfigured() {
-  return true
+  return Boolean(MODEL)
+}
+
+export async function checkOllamaHealth() {
+  try {
+    const response = await fetch('http://127.0.0.1:8787/health', { method: 'GET' })
+    if (!response.ok) throw new Error(`Proxy returned HTTP ${response.status}.`)
+    const data = await response.json()
+    return { ok: data.ok === true, model: MODEL, endpoint: LOCAL_PROXY_URL }
+  } catch (error) {
+    return {
+      ok: false,
+      model: MODEL,
+      endpoint: LOCAL_PROXY_URL,
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
 }
 
 async function generate(prompt, model = MODEL) {
@@ -38,7 +62,7 @@ async function generate(prompt, model = MODEL) {
   }
 
   throw new Error(
-    'Cannot reach local Ollama. Start Ollama and run local-ai-proxy/start-proxy.bat from the workstation repository.'
+    lastError?.message || 'Cannot reach local Ollama. Start Ollama and run local-ai-proxy/start-proxy.bat from the workstation repository.'
   )
 }
 
