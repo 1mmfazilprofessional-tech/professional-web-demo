@@ -45,6 +45,7 @@ const navItems = [
   ['debug', 'Debugging', Bug],
   ['quality', 'Quality & Security', ShieldCheck],
   ['testing', 'Testing', TestTube2],
+  ['repo', 'Repo & Code Ops', GitBranch],
   ['tasks', 'Tasks', CheckCircle2],
   ['ai', 'Local AI', BrainCircuit],
   ['quality', 'Quality', ShieldCheck],
@@ -103,6 +104,9 @@ function App() {
   const [testing, setTesting] = useState(null)
   const [testingBusy, setTestingBusy] = useState(false)
   const [testingError, setTestingError] = useState('')
+  const [repoOps, setRepoOps] = useState(null)
+  const [repoOpsBusy, setRepoOpsBusy] = useState(false)
+  const [repoOpsError, setRepoOpsError] = useState('')
 
   const blueprint = useMemo(() => buildBlueprint(project, analysis), [project, analysis])
 
@@ -196,6 +200,14 @@ function App() {
     try { setTesting(await analyzeTesting(project, blueprint, architecture, experience, codePlan, integration, quality)); setNotice('Testing and verification plan generated.') }
     catch (error) { setTestingError(error.message); setNotice('Testing plan could not be completed.') }
     finally { setTestingBusy(false) }
+  }
+
+  const runRepoOpsAnalysis = async () => {
+    if (!project.problem.trim()) { setRepoOpsError('Create a project before generating repository operations.'); return }
+    setRepoOpsBusy(true); setRepoOpsError('')
+    try { setRepoOps(await analyzeRepoOps(project, blueprint, architecture, codePlan, integration, quality, testing)); setNotice('Repository and implementation operations generated.') }
+    catch (error) { setRepoOpsError(error.message); setNotice('Repository operations could not be generated.') }
+    finally { setRepoOpsBusy(false) }
   }
 
   const createProject = (event) => {
@@ -293,6 +305,7 @@ function App() {
           {active === 'debug' && <Debugging debugInput={debugInput} setDebugInput={setDebugInput} result={debugResult} busy={debugBusy} error={debugError} runAnalysis={runDebugAnalysis} />}
           {active === 'quality' && <QualitySecurity quality={quality} busy={qualityBusy} error={qualityError} runAnalysis={runQualityAnalysis} />}
           {active === 'testing' && <Testing testing={testing} busy={testingBusy} error={testingError} runAnalysis={runTestingAnalysis} />}
+          {active === 'repo' && <RepoOps repoOps={repoOps} busy={repoOpsBusy} error={repoOpsError} runAnalysis={runRepoOpsAnalysis} />}
           {active === 'tasks' && <Tasks blueprint={blueprint} />}
           {active === 'quality' && <Quality />}
           {active === 'deploy' && <Deploy />}
@@ -646,6 +659,32 @@ function Testing({ testing, busy, error, runAnalysis }) {
         <Card><div className="card-heading"><span><RefreshCw size={17} /> Regression checks</span></div><IntelligenceList items={testing.regressionChecks} /></Card>
         <Card><div className="card-heading"><span><CheckCircle2 size={17} /> Pre-demo gate</span></div><IntelligenceList items={testing.preDemoGate} /></Card>
       </div>}
+    </>
+  )
+}
+
+
+function RepoOps({ repoOps, busy, error, runAnalysis }) {
+  const modules = repoOps?.modules || [
+    { name: 'Frontend', path: 'src/components/', responsibility: 'UI and feature components', dependencies: 'Design system + services' },
+    { name: 'Services', path: 'src/services/', responsibility: 'API and external integrations', dependencies: 'Environment + contracts' },
+    { name: 'Tests', path: 'tests/', responsibility: 'Automated verification', dependencies: 'Application modules' },
+    { name: 'Configuration', path: 'config / env', responsibility: 'Build and runtime configuration', dependencies: 'Deployment environment' },
+  ]
+  return (
+    <>
+      <PageHeader eyebrow="10 / REPO & CODE OPS" title="Turn the plan into an operable codebase." description="Map implementation units, dependencies, Git checkpoints and change impact before code is edited." action={<Button onClick={runAnalysis} disabled={busy}>{busy ? 'Mapping repository…' : repoOps ? 'Regenerate Repo Plan' : 'Generate Repo Plan'} <GitBranch size={17} /></Button>} />
+      {error && <div className="analysis-error" role="alert">{error}</div>}
+      <div className="repo-module-grid">{modules.map((module) => <Card key={module.name}><div className="card-heading"><span><FolderTree size={17} /> {module.name}</span><Badge color="secondary">{module.path}</Badge></div><p>{module.responsibility}</p><small className="repo-dependency">Depends on: {module.dependencies}</small></Card>)}</div>
+      {repoOps && <div className="repo-detail-grid">
+        <Card><div className="card-heading"><span><ListChecks size={17} /> Implementation units</span></div><IntelligenceList items={repoOps.implementationUnits} /></Card>
+        <Card><div className="card-heading"><span><Package size={17} /> Dependencies</span></div><IntelligenceList items={repoOps.dependencies} /></Card>
+        <Card><div className="card-heading"><span><GitCommitHorizontal size={17} /> Git checkpoints</span></div><IntelligenceList items={repoOps.gitCheckpoints} /></Card>
+        <Card><div className="card-heading"><span><RefreshCw size={17} /> Change impact</span></div><IntelligenceList items={repoOps.changeImpact} /></Card>
+        <Card><div className="card-heading"><span><FileCode2 size={17} /> Suggested file changes</span></div><IntelligenceList items={repoOps.fileChanges} /></Card>
+        <Card><div className="card-heading"><span><CheckCircle2 size={17} /> Done criteria</span></div><IntelligenceList items={repoOps.doneCriteria} /></Card>
+      </div>}
+      <div className="repo-note"><GitBranch size={17} /> This stage plans repository operations. It does not silently modify source code; actual edits remain reviewable and verifiable.</div>
     </>
   )
 }

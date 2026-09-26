@@ -261,3 +261,29 @@ export async function analyzeTesting(project, blueprint, architecture, experienc
     throw new Error('The local model returned invalid testing JSON. Run the test-plan generation again.')
   }
 }
+
+
+export async function analyzeRepoOps(project, blueprint, architecture, codePlan, integration, quality, testing) {
+  const prompt = [
+    'You are a senior software engineer and repository maintainer.',
+    'Turn the proposed system into an operable repository plan. Think in concrete modules, files, dependencies, implementation units and safe Git checkpoints.',
+    'Do not claim to have inspected the real repository. This is a generated implementation plan based only on supplied architecture information.',
+    'Return ONLY valid JSON with keys: modules (array of {name,path,responsibility,dependencies}), implementationUnits (array), dependencies (array), gitCheckpoints (array), changeImpact (array), fileChanges (array), doneCriteria (array).',
+    'Prefer small reviewable changes. Include verification after risky changes.',
+    'Project: ' + JSON.stringify(project),
+    'Blueprint: ' + JSON.stringify(blueprint),
+    'Architecture: ' + JSON.stringify(architecture || {}),
+    'Code plan: ' + JSON.stringify(codePlan || {}),
+    'Integration: ' + JSON.stringify(integration || {}),
+    'Quality: ' + JSON.stringify(quality || {}),
+    'Testing: ' + JSON.stringify(testing || {})
+  ].join('\n')
+  const raw = await generate(prompt)
+  try {
+    return JSON.parse(raw)
+  } catch {
+    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
+    if (fenced) return JSON.parse(fenced[1])
+    throw new Error('The local model returned invalid repository-operation JSON. Run the repository plan again.')
+  }
+}
