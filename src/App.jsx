@@ -15,7 +15,6 @@ import {
   LayoutDashboard,
   Menu,
   Network,
-  Play,
   Rocket,
   Server,
   Settings2,
