@@ -93,6 +93,7 @@ Return ONLY valid JSON with this exact top-level shape:
   "constraints": [],
   "recommendedScreens": [],
   "recommendedServices": [],
+  "serviceDecisions": [{"service":"","needed":false,"reason":""}],
   "technicalConsiderations": [],
   "avoidForNow": [],
   "nextActions": []
@@ -107,7 +108,7 @@ Hackathon duration: ${project.duration || 'Not specified'}
 Team size: ${project.teamSize || 'Not specified'}
 Constraints: ${project.constraints || 'Not specified'}
 
-Be concrete and hackathon-realistic. Prefer a smaller reliable MVP plus a few differentiated innovations over a huge feature list.`
+Be concrete and hackathon-realistic. Prefer a smaller reliable MVP plus a few differentiated innovations over a huge feature list. For every backend, database, authentication, API, AI/model, external service or server recommendation, explicitly decide whether it is actually necessary for the stated problem and duration. Do not recommend infrastructure merely because it is common. A simple client-side app should remain client-side.`
 
   const raw = await generate(prompt)
   try {
