@@ -44,6 +44,7 @@ const navItems = [
   ['integration', 'Integration', Network],
   ['debug', 'Debugging', Bug],
   ['quality', 'Quality & Security', ShieldCheck],
+  ['testing', 'Testing', TestTube2],
   ['tasks', 'Tasks', CheckCircle2],
   ['ai', 'Local AI', BrainCircuit],
   ['quality', 'Quality', ShieldCheck],
@@ -99,6 +100,9 @@ function App() {
   const [quality, setQuality] = useState(null)
   const [qualityBusy, setQualityBusy] = useState(false)
   const [qualityError, setQualityError] = useState('')
+  const [testing, setTesting] = useState(null)
+  const [testingBusy, setTestingBusy] = useState(false)
+  const [testingError, setTestingError] = useState('')
 
   const blueprint = useMemo(() => buildBlueprint(project, analysis), [project, analysis])
 
@@ -184,6 +188,14 @@ function App() {
     try { setQuality(await analyzeQuality(project, blueprint, architecture, experience, codePlan, integration)); setNotice('Quality and security review completed.') }
     catch (error) { setQualityError(error.message); setNotice('Quality review could not be completed.') }
     finally { setQualityBusy(false) }
+  }
+
+  const runTestingAnalysis = async () => {
+    if (!project.problem.trim()) { setTestingError('Create a project before generating the verification plan.'); return }
+    setTestingBusy(true); setTestingError('')
+    try { setTesting(await analyzeTesting(project, blueprint, architecture, experience, codePlan, integration, quality)); setNotice('Testing and verification plan generated.') }
+    catch (error) { setTestingError(error.message); setNotice('Testing plan could not be completed.') }
+    finally { setTestingBusy(false) }
   }
 
   const createProject = (event) => {
@@ -280,6 +292,7 @@ function App() {
           {active === 'integration' && <Integration blueprint={blueprint} architecture={architecture} codePlan={codePlan} integration={integration} busy={integrationBusy} error={integrationError} runAnalysis={runIntegrationAnalysis} />}
           {active === 'debug' && <Debugging debugInput={debugInput} setDebugInput={setDebugInput} result={debugResult} busy={debugBusy} error={debugError} runAnalysis={runDebugAnalysis} />}
           {active === 'quality' && <QualitySecurity quality={quality} busy={qualityBusy} error={qualityError} runAnalysis={runQualityAnalysis} />}
+          {active === 'testing' && <Testing testing={testing} busy={testingBusy} error={testingError} runAnalysis={runTestingAnalysis} />}
           {active === 'tasks' && <Tasks blueprint={blueprint} />}
           {active === 'quality' && <Quality />}
           {active === 'deploy' && <Deploy />}
@@ -608,6 +621,30 @@ function QualitySecurity({ quality, busy, error, runAnalysis }) {
         <Card><div className="card-heading"><span><Wrench size={17} /> Remediation tasks</span></div><IntelligenceList items={quality.remediationTasks} /></Card>
         <Card><div className="card-heading"><span><Gauge size={17} /> Performance checks</span></div><IntelligenceList items={quality.performanceChecks} /></Card>
         <Card><div className="card-heading"><span><LockKeyhole size={17} /> Security checks</span></div><IntelligenceList items={quality.securityChecks} /></Card>
+      </div>}
+    </>
+  )
+}
+
+
+function Testing({ testing, busy, error, runAnalysis }) {
+  const categories = testing?.categories || [
+    { name: 'Unit', purpose: 'Verify isolated business logic and utilities.', tests: ['Core calculations', 'Validation rules', 'Error handling'] },
+    { name: 'Integration', purpose: 'Verify service and API boundaries.', tests: ['API contracts', 'Database operations', 'Authentication boundaries'] },
+    { name: 'End-to-End', purpose: 'Verify critical user journeys.', tests: ['Primary user flow', 'Failure recovery', 'Responsive behavior'] },
+    { name: 'Security', purpose: 'Verify security-sensitive behavior.', tests: ['Unauthorized access', 'Input abuse', 'Secret exposure'] },
+  ]
+  return (
+    <>
+      <PageHeader eyebrow="09 / TESTING ENGINE" title="Prove the system works before the demo." description="Generate a practical test strategy from the actual architecture, integration boundaries and identified risks." action={<Button onClick={runAnalysis} disabled={busy}>{busy ? 'Designing tests…' : testing ? 'Regenerate Test Plan' : 'Generate Test Plan'} <TestTube2 size={17} /></Button>} />
+      {error && <div className="analysis-error" role="alert">{error}</div>}
+      {testing && <div className="testing-summary"><div><Badge color={testing.overallStatus === 'Demo Ready' ? 'success' : 'warning'}>{testing.overallStatus || 'Review'}</Badge><h2>{testing.summary}</h2></div><div><strong>{testing.criticalPathCount ?? 0}</strong><span> critical-path checks</span></div></div>}
+      <div className="testing-category-grid">{categories.map((category) => <Card key={category.name}><div className="card-heading"><span><TestTube2 size={17} /> {category.name}</span><Badge color="secondary">Tests</Badge></div><p>{category.purpose}</p><IntelligenceList items={category.tests} /></Card>)}</div>
+      {testing && <div className="testing-detail-grid">
+        <Card><div className="card-heading"><span><Route size={17} /> Critical user journeys</span></div><IntelligenceList items={testing.criticalJourneys} /></Card>
+        <Card><div className="card-heading"><span><AlertTriangle size={17} /> Edge cases</span></div><IntelligenceList items={testing.edgeCases} /></Card>
+        <Card><div className="card-heading"><span><RefreshCw size={17} /> Regression checks</span></div><IntelligenceList items={testing.regressionChecks} /></Card>
+        <Card><div className="card-heading"><span><CheckCircle2 size={17} /> Pre-demo gate</span></div><IntelligenceList items={testing.preDemoGate} /></Card>
       </div>}
     </>
   )
