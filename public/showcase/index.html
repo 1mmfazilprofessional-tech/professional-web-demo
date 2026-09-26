@@ -38,6 +38,10 @@ h1{font-size:clamp(48px,7vw,88px);line-height:.94;letter-spacing:-.065em;margin:
 .cta{padding:60px;border-radius:32px;border:1px solid rgba(77,231,255,.16);background:radial-gradient(circle at 85% 20%,rgba(155,124,255,.16),transparent 34%),linear-gradient(135deg,rgba(77,231,255,.08),rgba(255,255,255,.03));display:flex;justify-content:space-between;align-items:center;gap:30px}.cta h2{margin:0;font-size:clamp(28px,4vw,46px);letter-spacing:-.05em}.cta p{color:var(--muted);max-width:600px;line-height:1.7}
 footer{padding:35px 0 50px;color:#6f7b91;font-size:12px;display:flex;justify-content:space-between}
 .toast{position:fixed;right:22px;bottom:22px;max-width:360px;padding:15px 17px;border:1px solid rgba(84,242,164,.28);background:rgba(7,12,22,.92);backdrop-filter:blur(18px);border-radius:15px;box-shadow:var(--shadow);transform:translateY(130%);transition:.35s;z-index:20;font-size:13px}.toast.show{transform:translateY(0)}
+.stage{cursor:pointer;overflow:hidden}.stage:after{content:"↗";position:absolute;right:18px;bottom:15px;color:rgba(77,231,255,.55);font-size:18px;opacity:0;transform:translate(-5px,5px);transition:.25s}.stage:hover:after{opacity:1;transform:none}.stage.selected{border-color:rgba(77,231,255,.65)!important;box-shadow:0 0 0 1px rgba(77,231,255,.15),0 20px 50px rgba(77,231,255,.08);background:linear-gradient(145deg,rgba(77,231,255,.10),rgba(155,124,255,.07))}.stage .state{transition:.3s}.stage.selected .state{transform:scale(1.7);background:var(--cyan);box-shadow:0 0 20px var(--cyan)}
+.detail-shell{margin-top:18px;display:grid;grid-template-columns:1fr 1.4fr;border:1px solid rgba(77,231,255,.18);border-radius:24px;overflow:hidden;background:rgba(8,13,25,.78);box-shadow:var(--shadow);backdrop-filter:blur(18px);animation:detailIn .35s ease both}.detail-side{padding:28px;border-right:1px solid var(--line);background:radial-gradient(circle at 20% 20%,rgba(77,231,255,.10),transparent 55%)}.detail-side .big-num{font-size:56px;font-weight:900;letter-spacing:-.07em;color:rgba(255,255,255,.14)}.detail-side h3{font-size:25px;margin:8px 0}.detail-side p{color:var(--muted);line-height:1.7;font-size:13px}.detail-main{padding:28px}.detail-main h4{margin:0 0 15px;font-size:12px;color:var(--cyan);text-transform:uppercase;letter-spacing:.13em}.detail-list{display:grid;gap:10px;margin:0;padding:0;list-style:none}.detail-list li{padding:12px 14px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.035);color:#dce4f3;font-size:13px;line-height:1.5}.detail-list li:before{content:"✓";color:var(--green);font-weight:900;margin-right:9px}.detail-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.mini-btn{border:1px solid var(--line);background:rgba(255,255,255,.045);color:#fff;border-radius:11px;padding:9px 12px;cursor:pointer;font-size:12px}.mini-btn:hover{border-color:rgba(77,231,255,.35);background:rgba(77,231,255,.07)}
+.timeline{display:flex;align-items:center;margin:25px 0 0}.timeline-step{flex:1;height:5px;background:rgba(255,255,255,.08);position:relative}.timeline-step:first-child{border-radius:5px 0 0 5px}.timeline-step:last-child{border-radius:0 5px 5px 0}.timeline-step.on{background:linear-gradient(90deg,var(--cyan),var(--violet))}.timeline-step:after{content:"";position:absolute;width:9px;height:9px;border-radius:50%;background:#182238;right:-4px;top:-2px;border:1px solid rgba(255,255,255,.15)}.timeline-step.on:after{background:var(--cyan);box-shadow:0 0 12px rgba(77,231,255,.7)}
+@keyframes detailIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes spin{to{transform:rotateX(360deg) rotateY(360deg) rotateZ(20deg)}}@keyframes float{50%{transform:translateY(-12px)}}@keyframes orbit{from{transform:rotate(0deg) translateX(185px) rotate(0deg)}to{transform:rotate(360deg) translateX(185px) rotate(-360deg)}}@keyframes blink{50%{opacity:0}}
 @media(max-width:900px){.hero{grid-template-columns:1fr;padding-top:45px}.scene{height:420px;order:-1}.pipeline{grid-template-columns:repeat(2,1fr)}.demo-grid{grid-template-columns:1fr}.navlinks{display:none}.cta{padding:35px;flex-direction:column;align-items:flex-start}}
 @media(max-width:560px){.wrap{width:min(100% - 24px,1180px)}.hero{min-height:auto}.hero h1{font-size:52px}.scene{transform:scale(.78);margin:-45px 0}.pipeline{grid-template-columns:1fr}.hero-meta{gap:14px;flex-wrap:wrap}.section{padding:65px 0}.cta{border-radius:24px}footer{display:block}.footer-right{margin-top:8px}}
@@ -85,6 +89,23 @@ footer{padding:35px 0 50px;color:#6f7b91;font-size:12px;display:flex;justify-con
     <article class="stage"><span class="num">11</span><span class="state"></span><h3>Deployment</h3><p>Prepare a repeatable path from verified build to live product.</p></article>
     <article class="stage"><span class="num">12</span><span class="state"></span><h3>Presentation</h3><p>Turn the engineering work into a clear, convincing demo story.</p></article>
   </div>
+  <div class="detail-shell" id="detailShell" aria-live="polite">
+    <div class="detail-side">
+      <div class="big-num" id="detailNum">01</div>
+      <div class="kicker">Selected stage</div>
+      <h3 id="detailTitle">Problem Intelligence</h3>
+      <p id="detailSummary">Select any stage to explore what happens there, what decisions are made and what output moves forward.</p>
+      <div class="timeline" id="timeline"><span class="timeline-step on"></span><span class="timeline-step"></span><span class="timeline-step"></span><span class="timeline-step"></span><span class="timeline-step"></span><span class="timeline-step"></span><span class="timeline-step"></span><span class="timeline-step"></span><span class="timeline-step"></span><span class="timeline-step"></span><span class="timeline-step"></span><span class="timeline-step"></span></div>
+    </div>
+    <div class="detail-main">
+      <h4>What happens here</h4>
+      <ul class="detail-list" id="detailList"></ul>
+      <div class="detail-actions">
+        <button class="mini-btn" id="detailRun">Run this stage</button>
+        <button class="mini-btn" id="detailNext">Next stage →</button>
+      </div>
+    </div>
+  </div>
 </section>
 
 <section class="section wrap" id="demo">
@@ -126,6 +147,36 @@ function paint(){ctx.clearRect(0,0,canvas.width,canvas.height);for(const p of po
 addEventListener('resize',()=>{resize();seed()});resize();seed();paint();
 
 const stages=[...document.querySelectorAll('.stage')],terminal=document.getElementById('terminal'),progress=document.getElementById('progress'),active=document.getElementById('active'),toast=document.getElementById('toast');
+const detailNum=document.getElementById('detailNum'),detailTitle=document.getElementById('detailTitle'),detailSummary=document.getElementById('detailSummary'),detailList=document.getElementById('detailList'),detailRun=document.getElementById('detailRun'),detailNext=document.getElementById('detailNext'),timeline=[...document.querySelectorAll('.timeline-step')];
+const stageInfo=[
+['Problem Intelligence','Understand the real problem before choosing technology.',['Clarify users, goals, pain points and constraints.','Separate must-have outcomes from optional ideas.','Produce a precise problem brief that guides every later decision.']],
+['Blueprint','Turn the problem into a buildable product definition.',['Define the core journey and acceptance criteria.','Map key features, states and expected outcomes.','Create a shared reference for design, code and testing.']],
+['Architecture','Choose the smallest architecture that can reliably solve the problem.',['Decide whether backend, database, auth, APIs or AI are actually necessary.','Define layers, data flow, security and failure handling.','Keep infrastructure proportional to the product.']],
+['UX / Experience','Design how the user moves through the product.',['Define information hierarchy and primary actions.','Design loading, empty, success and error states.','Shape responsive behavior, accessibility and interaction feedback.']],
+['Code Lab','Translate decisions into real implementation.',['Define components, modules and implementation boundaries.','Build the core journey rather than decorative placeholders.','Use the chosen stack consistently and keep code maintainable.']],
+['Integration','Make independently built pieces work together.',['Connect UI, state, APIs and persistence where required.','Verify data contracts and integration boundaries.','Check that the complete journey works as one system.']],
+['Debugging','Find and fix root causes systematically.',['Reproduce the failure and isolate its source.','Fix the underlying issue instead of masking symptoms.','Re-run affected flows after every meaningful correction.']],
+['Quality & Security','Raise the product from working code to trustworthy software.',['Review validation, error handling and unsafe assumptions.','Check accessibility, responsive behavior and dependency exposure.','Verify sensitive flows and failure paths before release.']],
+['Testing','Prove the important journeys actually work.',['Test critical user flows and edge cases.','Verify expected success and failure behavior.','Turn test results into concrete release confidence.']],
+['Repository Ops','Make the project reproducible and collaboration-ready.',['Keep source structure, commits and documentation organized.','Prepare repository operations and collaboration boundaries.','Make the project understandable to another developer.']],
+['Deployment','Move the verified product toward a repeatable release.',['Prepare the build and deployment configuration.','Run quality gates before publishing.','Verify the deployed experience rather than assuming success.']],
+['Presentation','Turn engineering work into a clear demonstration.',['Explain the problem, product and architecture in sequence.','Demonstrate the critical journey with evidence.','End with measurable outcomes and a credible next step.']]
+];
+let selectedStage=0;
+function selectStage(index,scroll){
+ selectedStage=(index+12)%12;
+ stages.forEach((s,i)=>s.classList.toggle('selected',i===selectedStage));
+ const d=stageInfo[selectedStage];
+ detailNum.textContent=String(selectedStage+1).padStart(2,'0');
+ detailTitle.textContent=d[0];detailSummary.textContent=d[1];
+ detailList.innerHTML=d[2].map(x=>'<li>'+x+'</li>').join('');
+ timeline.forEach((x,i)=>x.classList.toggle('on',i<=selectedStage));
+ if(scroll)document.getElementById('detailShell').scrollIntoView({behavior:'smooth',block:'center'});
+}
+stages.forEach((stage,i)=>stage.addEventListener('click',()=>selectStage(i,true)));
+detailNext.addEventListener('click',()=>selectStage(selectedStage+1,true));
+detailRun.addEventListener('click',()=>{notify('Stage '+String(selectedStage+1).padStart(2,'0')+' · '+stageInfo[selectedStage][0]+' selected for execution.');document.getElementById('demo').scrollIntoView({behavior:'smooth'});});
+selectStage(0);
 let running=false;
 function notify(msg){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2800)}
 async function runDemo(){
