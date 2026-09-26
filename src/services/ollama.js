@@ -1,4 +1,4 @@
-const OLLAMA_PROXY_URL = 'http://localhost:8787/api/ollama'
+const OLLAMA_PROXY_URL = '/api/ollama'
 const DIRECT_OLLAMA_URL = 'http://localhost:11434/api/generate'
 const MODEL = 'qwen2.5-coder:7b'
 
