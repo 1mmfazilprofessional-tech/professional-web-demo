@@ -433,7 +433,13 @@ function App() {
           {notice && <div className="workstation-notice" role="status">{notice}</div>}
 
           {active === 'dashboard' && (
-            <Dashboard project={project} created={created} go={go} />
+            <Dashboard
+              project={project}
+              created={created}
+              go={go}
+              ollamaHealth={ollamaHealth}
+              stages={stages}
+            />
           )}
 
           {active === 'project' && (
@@ -653,7 +659,7 @@ function ReadinessPanel({ project, created, ollamaHealth, stages }) {
   )
 }
 
-function Dashboard({ project, created, go }) {
+function Dashboard({ project, created, go, ollamaHealth, stages }) {
   return (
     <>
       <PageHeader
