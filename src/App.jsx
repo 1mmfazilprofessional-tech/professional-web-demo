@@ -771,4 +771,4 @@ function PresentationDemo({ presentation, busy, error, runAnalysis }) {
   )
 }
 
-
+export default App
