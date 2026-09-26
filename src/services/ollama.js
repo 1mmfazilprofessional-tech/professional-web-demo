@@ -275,7 +275,7 @@ export async function buildProduct(project, blueprint, analysis, architecture, e
   ].join('\n')
 
   let html = await generate(prompt, MODEL, PRODUCT_REQUEST_TIMEOUT_MS)
-  html = html.trim().replace(/^\\x60\\x60\\x60(?:html)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/i, '').trim()
+  html = html.trim().replace(/^```(?:html)?\s*/i, '').replace(/\s*```$/i, '').trim()
 
   const doctypeIndex = html.toLowerCase().indexOf('<!doctype html>')
   const htmlIndex = html.toLowerCase().indexOf('<html')
