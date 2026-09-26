@@ -3,6 +3,7 @@ const SAME_ORIGIN_PROXY_URL = '/api/ollama'
 const DIRECT_OLLAMA_URL = 'http://127.0.0.1:11434/api/generate'
 const MODEL = 'qwen2.5-coder:7b'
 const REQUEST_TIMEOUT_MS = 45_000
+const PRODUCT_REQUEST_TIMEOUT_MS = 120_000
 
 export function getOllamaConfig() {
   return {
@@ -32,7 +33,7 @@ export async function checkOllamaHealth() {
   }
 }
 
-async function generate(prompt, model = MODEL) {
+async function generate(prompt, model = MODEL, timeoutMs = REQUEST_TIMEOUT_MS) {
   const payload = { model, prompt, stream: false, options: { temperature: 0.2 } }
 
   const endpoints = [
@@ -46,7 +47,7 @@ async function generate(prompt, model = MODEL) {
   for (const endpoint of endpoints) {
     try {
       const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+      const timeout = setTimeout(() => controller.abort(), timeoutMs)
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -270,7 +271,7 @@ export async function buildProduct(project, blueprint, analysis, architecture, e
     'Return a polished, complete, genuinely usable MVP.'
   ].join('\n')
 
-  const parsed = parseJsonResponse(await generate(prompt), 'product build')
+  const parsed = parseJsonResponse(await generate(prompt, MODEL, PRODUCT_REQUEST_TIMEOUT_MS), 'product build')
   const result = validateStructuredResult(parsed, ['productName', 'files', 'runInstructions', 'acceptanceCriteria'], 'product build')
   if (!Array.isArray(result.files) || result.files.length === 0) {
     throw new Error('Local AI product build did not return any files.')
