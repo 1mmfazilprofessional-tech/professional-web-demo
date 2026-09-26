@@ -500,7 +500,12 @@ function Blueprint({ blueprint, project, created, analysis, analysisBusy, analys
   )
 }
 
-function IntelligenceList({ title, items = [] }) {\n  if (!items.length) return null\n  return <div className="intelligence-list"><strong>{title}</strong><ul>{items.map((item, index) => <li key={typeof item === 'string' ? item : index}>{typeof item === 'string' ? item : JSON.stringify(item)}</li>)}</ul></div>\n}\n\nfunction Architecture({ blueprint, architecture, busy, error, runAnalysis }) {
+function IntelligenceList({ title, items = [] }) {
+  if (!items.length) return null
+  return <div className="intelligence-list"><strong>{title}</strong><ul>{items.map((item, index) => <li key={typeof item === 'string' ? item : index}>{typeof item === 'string' ? item : JSON.stringify(item)}</li>)}</ul></div>
+}
+
+function Architecture({ blueprint, architecture, busy, error, runAnalysis }) {
   const layers = architecture?.layers || [
     { name: 'Frontend', technology: 'React + Vite', responsibility: 'User interface, routing, state and user interactions.', connectsTo: ['API Layer'] },
     { name: 'API Layer', technology: 'REST / Node.js', responsibility: 'Validation, business logic and service orchestration.', connectsTo: ['Database', 'AI Service'] },
