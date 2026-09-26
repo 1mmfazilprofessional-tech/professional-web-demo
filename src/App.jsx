@@ -941,6 +941,49 @@ function CodeLab({ blueprint, codePlan, busy, error, runAnalysis, generatedProdu
 }
 
 
+function ProductBuildResult({ product }) {
+  const runnable = product.files.find((file) => file.path === 'index.html')
+  const openPreview = () => {
+    if (!runnable) return
+    const blob = new Blob([runnable.content], { type: 'text/html' })
+    const url = URL.createObjectURL(blob)
+    window.open(url, '_blank', 'noopener,noreferrer')
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  }
+
+  const downloadFile = (file) => {
+    const blob = new Blob([file.content], { type: file.path.endsWith('.html') ? 'text/html' : 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = file.path.split('/').pop() || 'generated-file.txt'
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
+
+  return (
+    <Card>
+      <div className="card-heading"><span><Package size={17} /> {product.productName}</span><Badge color="success">Runnable MVP</Badge></div>
+      <p>{product.files.length} generated file{product.files.length === 1 ? '' : 's'} are stored in the workstation workspace.</p>
+      <div className="hero-actions">
+        <Button onClick={openPreview} disabled={!runnable}><PlayCircle size={17} /> Open Product Preview</Button>
+      </div>
+      <div className="file-tree">
+        {product.files.map((file) => (
+          <div className="file-row" key={file.path}>
+            <Code2 size={15} />
+            <strong>{file.path}</strong>
+            <Button variant="outline" onClick={() => downloadFile(file)}>Download</Button>
+          </div>
+        ))}
+      </div>
+      <IntelligenceList title="Run instructions" items={product.runInstructions} />
+      <IntelligenceList title="Acceptance criteria" items={product.acceptanceCriteria} />
+    </Card>
+  )
+}
+
+
 function Integration({ blueprint, architecture, codePlan, integration, busy, error, runAnalysis }) {
   const connections = integration?.connections || [
     { from: 'Frontend', to: 'Backend API', contract: 'HTTP/JSON', status: 'Planned' },
