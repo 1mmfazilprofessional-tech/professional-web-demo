@@ -43,6 +43,7 @@ const navItems = [
   ['code', 'Code Lab', Code2],
   ['integration', 'Integration', Network],
   ['debug', 'Debugging', Bug],
+  ['quality', 'Quality & Security', ShieldCheck],
   ['tasks', 'Tasks', CheckCircle2],
   ['ai', 'Local AI', BrainCircuit],
   ['quality', 'Quality', ShieldCheck],
@@ -95,6 +96,9 @@ function App() {
   const [debugResult, setDebugResult] = useState(null)
   const [debugBusy, setDebugBusy] = useState(false)
   const [debugError, setDebugError] = useState('')
+  const [quality, setQuality] = useState(null)
+  const [qualityBusy, setQualityBusy] = useState(false)
+  const [qualityError, setQualityError] = useState('')
 
   const blueprint = useMemo(() => buildBlueprint(project, analysis), [project, analysis])
 
@@ -172,6 +176,14 @@ function App() {
     try { setDebugResult(await analyzeError(debugInput, project, architecture, codePlan, integration)); setNotice('Error intelligence analysis completed.') }
     catch (error) { setDebugError(error.message); setNotice('Debug analysis could not be completed.') }
     finally { setDebugBusy(false) }
+  }
+
+  const runQualityAnalysis = async () => {
+    if (!project.problem.trim()) { setQualityError('Create a project before running the quality review.'); return }
+    setQualityBusy(true); setQualityError('')
+    try { setQuality(await analyzeQuality(project, blueprint, architecture, experience, codePlan, integration)); setNotice('Quality and security review completed.') }
+    catch (error) { setQualityError(error.message); setNotice('Quality review could not be completed.') }
+    finally { setQualityBusy(false) }
   }
 
   const createProject = (event) => {
@@ -267,6 +279,7 @@ function App() {
           {active === 'code' && <CodeLab blueprint={blueprint} architecture={architecture} experience={experience} codePlan={codePlan} busy={codeBusy} error={codeError} runAnalysis={runCodePlanning} />}
           {active === 'integration' && <Integration blueprint={blueprint} architecture={architecture} codePlan={codePlan} integration={integration} busy={integrationBusy} error={integrationError} runAnalysis={runIntegrationAnalysis} />}
           {active === 'debug' && <Debugging debugInput={debugInput} setDebugInput={setDebugInput} result={debugResult} busy={debugBusy} error={debugError} runAnalysis={runDebugAnalysis} />}
+          {active === 'quality' && <QualitySecurity quality={quality} busy={qualityBusy} error={qualityError} runAnalysis={runQualityAnalysis} />}
           {active === 'tasks' && <Tasks blueprint={blueprint} />}
           {active === 'quality' && <Quality />}
           {active === 'deploy' && <Deploy />}
@@ -571,6 +584,30 @@ function Debugging({ debugInput, setDebugInput, result, busy, error, runAnalysis
         <Card><div className="card-heading"><span><Wrench size={17} /> Recommended fix</span></div><IntelligenceList items={result.fixPlan} /></Card>
         <Card><div className="card-heading"><span><TestTube2 size={17} /> Verification</span></div><IntelligenceList items={result.verificationSteps} /></Card>
         <Card><div className="card-heading"><span><ShieldCheck size={17} /> Regression prevention</span></div><IntelligenceList items={result.regressionPrevention} /></Card>
+      </div>}
+    </>
+  )
+}
+
+
+function QualitySecurity({ quality, busy, error, runAnalysis }) {
+  const domains = quality?.domains || [
+    { name: 'Security', status: 'Review', findings: ['Authentication and authorization boundaries', 'Input validation and API exposure', 'Secrets and environment configuration'] },
+    { name: 'Accessibility', status: 'Review', findings: ['Keyboard navigation', 'Semantic structure', 'Focus and contrast'] },
+    { name: 'Performance', status: 'Review', findings: ['Bundle size and network requests', 'Rendering and expensive interactions', 'Caching and loading states'] },
+    { name: 'Reliability', status: 'Review', findings: ['Error handling', 'Failure recovery', 'External service resilience'] },
+  ]
+  return (
+    <>
+      <PageHeader eyebrow="08 / QUALITY & SECURITY" title="Find weaknesses before the judges or users do." description="Review the planned system for security, accessibility, performance, reliability, maintainability and hackathon delivery risk." action={<Button onClick={runAnalysis} disabled={busy}>{busy ? 'Reviewing system…' : quality ? 'Run Review Again' : 'Run Quality Review'} <ShieldCheck size={17} /></Button>} />
+      {error && <div className="analysis-error" role="alert">{error}</div>}
+      {quality && <div className="quality-summary"><div><Badge color={quality.overallStatus === 'Ready' ? 'success' : 'warning'}>{quality.overallStatus || 'Review'}</Badge><h2>{quality.summary}</h2></div><div className="quality-score"><strong>{quality.riskCount ?? 0}</strong><span>priority risks</span></div></div>}
+      <div className="quality-domain-grid">{domains.map((domain) => <Card key={domain.name}><div className="card-heading"><span><ShieldCheck size={17} /> {domain.name}</span><Badge color={domain.status === 'Ready' ? 'success' : 'warning'}>{domain.status}</Badge></div><IntelligenceList items={domain.findings} /></Card>)}</div>
+      {quality && <div className="quality-detail-grid">
+        <Card><div className="card-heading"><span><AlertTriangle size={17} /> Priority risks</span></div><IntelligenceList items={quality.priorityRisks} /></Card>
+        <Card><div className="card-heading"><span><Wrench size={17} /> Remediation tasks</span></div><IntelligenceList items={quality.remediationTasks} /></Card>
+        <Card><div className="card-heading"><span><Gauge size={17} /> Performance checks</span></div><IntelligenceList items={quality.performanceChecks} /></Card>
+        <Card><div className="card-heading"><span><LockKeyhole size={17} /> Security checks</span></div><IntelligenceList items={quality.securityChecks} /></Card>
       </div>}
     </>
   )
