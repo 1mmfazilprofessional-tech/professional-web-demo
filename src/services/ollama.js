@@ -254,13 +254,17 @@ function productNeedsRefinement(html, project, architecture) {
     /(authentication|auth|login|sign up|signup|account)/.test(scope) &&
     !/(not required|not needed|unnecessary|no authentication|without authentication|no auth|without auth)/.test(scope)
 
+  const interactiveCount = (lower.match(/<(button|a|summary|input|select|textarea)\\b/g) || []).length
+  const sectionCount = (lower.match(/<(section|main|article|dialog)\\b/g) || []).length
   const looksLikeTemplate =
     !lower.includes('<style') ||
     !lower.includes('<script') ||
     (!lower.includes(':root') && !lower.includes('--')) ||
     lower.includes('styles.css') ||
     lower.includes('scripts.js') ||
-    (!authExplicitlyRequired && (lower.includes('sign up') || lower.includes('signup') || lower.includes('login')))
+    (!authExplicitlyRequired && (lower.includes('sign up') || lower.includes('signup') || lower.includes('login'))) ||
+    interactiveCount < 3 ||
+    sectionCount < 3
 
   return looksLikeTemplate
 }
@@ -279,11 +283,20 @@ export async function buildProduct(project, blueprint, analysis, architecture, e
     'Do not use generic admin/auth templates. Do not add login, sign-up, accounts, settings or dashboards unless authentication/account/settings/dashboard behavior is explicitly required by the supplied requirements.',
     'Do not output references to styles.css, scripts.js, TODOs, lorem ipsum, fake controls or unimplemented features.',
     'Use CSS/SVG/Canvas/native browser APIs for rich visuals; never depend on external libraries, fonts, images or CDNs.',
-    'Keep the product appropriately scoped, but spend the implementation budget on polish and interaction quality rather than unnecessary features.',
+    'Keep the product appropriately scoped, but spend the implementation budget on meaningful product depth, interaction quality and visual polish rather than unnecessary infrastructure.',
+    'Treat the supplied problem statement, blueprint, architecture, UX, code plan, integration, quality, testing and presentation outputs as the product specification. Do not merely summarize them: implement their important decisions in the website.',
+    'The final website is the OUTPUT of the workstation. It must visibly demonstrate the solution to the supplied university/hackathon problem, not demonstrate the workstation itself unless the problem statement is about the workstation.',
+    'Derive a feature map from the actual problem: identify the primary user journey, 3-6 supporting capabilities, important states, useful information/summary views, and any secondary interactions justified by the requirements.',
+    'Every meaningful capability that you implement must be discoverable and clickable. Clicking a feature, card, stage, navigation item or important status should reveal useful detail, navigate to the relevant view, open a modal/drawer, change state, or perform the actual action. Never make decorative cards look clickable when they do nothing.',
+    'For appropriate products, include a compact dashboard or summary area showing useful live information derived from the product state. Do not add a dashboard merely to imitate SaaS templates.',
+    'If the problem genuinely requires notifications, email, authentication, payments, maps, AI, realtime data, a backend, a database or external APIs, implement the user-facing flow and structure according to the supplied architecture. If the architecture does not provide that capability, do not fake successful external behavior; provide an honest local/demo state or omit it.',
+    'Use progressive disclosure: keep the first viewport focused, then let users Explore Details, View Insights, open feature panels, inspect statuses or move through the main journey without losing context.',
+    'Use rich but purposeful presentation when the problem benefits from it: hero visualization, diagrams, timelines, data visualization, animated cards, SVG, Canvas, CSS 3D or native browser 3D-like effects. Do not force 3D into products where it adds no value.',
+    'The website should feel like a complete product: branded header/navigation, focused hero or entry state, primary workflow, supporting feature areas, useful feedback states, responsive mobile behavior and a clear completion/success state.',
     'Above-the-fold quality is mandatory: do not leave unexplained blank space, oversized empty hero areas or content pushed far below the viewport. The primary experience must be visible immediately on load.',
     'Prevent layout defects: use box-sizing:border-box, responsive max-widths and overflow control. The finished page must not create an unnecessary horizontal scrollbar at normal desktop or mobile widths.',
-    'For a task tracker specifically, make the core experience visibly richer than one input and one button: include a polished task list/state area, completion interaction, useful progress or summary feedback, and empty-state guidance while keeping the scope single-user and local.',
-    'The page should feel intentionally composed from the first viewport: a strong header/hero treatment, focused task-entry area, and a clear visual hierarchy between active tasks, completed state and supporting information.',
+    'Do not reduce a simple problem to a one-input/one-button page. Even a small application should have a polished core workflow, state/summary feedback, empty/loading/success/error states and at least one useful secondary interaction when justified.',
+    'The page should feel intentionally composed from the first viewport, with a clear product identity and visual hierarchy rather than a generic template.',
     'ENGINEERING CONTEXT:',
     'Project: ' + JSON.stringify(project),
     'Blueprint: ' + JSON.stringify(blueprint),
@@ -312,7 +325,11 @@ export async function buildProduct(project, blueprint, analysis, architecture, e
       'Rewrite the supplied HTML into a polished, functional, self-contained production-quality MVP.',
       'Preserve the actual problem and required functionality, but remove generic template behavior and unnecessary features.',
       'If authentication, accounts or settings are not explicitly required by the architecture, remove them completely.',
-      'The first screen must immediately show the product purpose and main action.',
+      'The first screen must immediately show the actual product purpose and main action.',
+      'Compare the supplied requirements against the current HTML. Add the missing meaningful capabilities rather than merely changing colors.',
+      'Make the primary journey complete and make meaningful feature cards, navigation items and status elements interactive. Clicking them must reveal information, navigate, change state, open a panel/modal, or perform a real local action.',
+      'Add a compact, problem-appropriate dashboard/summary only when it helps the user understand useful live product state.',
+      'Where the architecture genuinely requires email, authentication, APIs, AI, backend or database behavior, preserve that requirement and represent the actual flow honestly. Never invent successful external actions.',
       'Use inline CSS and JavaScript only. Add a strong visual hierarchy, responsive layout, polished controls, cards/surfaces, useful states, local persistence when appropriate, and subtle purposeful interactions.',
       'Do not return Markdown, explanations or separate files. Return only complete index.html.',
       'Project: ' + JSON.stringify(project),
