@@ -213,6 +213,7 @@ function App() {
       setNotice('Create a project problem before generating architecture.')
       return
     }
+    if (!analysis) { setNotice('Run Problem Intelligence first so architecture uses evidence from the project.'); setActive('project'); return }
     setArchitectureBusy(true)
     setArchitectureError('')
     try {
@@ -229,6 +230,7 @@ function App() {
 
   const runExperienceAnalysis = async () => {
     if (!project.problem.trim()) { setNotice('Create a project problem before designing the experience.'); return }
+    if (!analysis || !architecture) { setNotice('Complete Problem Intelligence and Architecture before designing the experience.'); return }
     setExperienceBusy(true); setExperienceError('')
     try { setExperience(await analyzeExperience(project, blueprint, architecture, analysis)); setNotice('UI/UX and experience plan generated.') }
     catch (error) { setExperienceError(error.message); setNotice('Experience design could not be completed.') }
@@ -237,6 +239,7 @@ function App() {
 
   const runCodePlanning = async () => {
     if (!project.problem.trim()) { setNotice('Create a project before generating the implementation plan.'); return }
+    if (!analysis || !architecture || !experience) { setNotice('Complete Problem Intelligence, Architecture and Experience before planning code.'); return }
     setCodeBusy(true); setCodeError('')
     try { setCodePlan(await analyzeCodePlan(project, blueprint, architecture, experience)); setNotice('Implementation plan generated from the architecture and UX.') }
     catch (error) { setCodeError(error.message); setNotice('Code planning could not be completed.') }
@@ -245,6 +248,7 @@ function App() {
 
   const runIntegrationAnalysis = async () => {
     if (!project.problem.trim()) { setNotice('Create a project before checking integration.'); return }
+    if (!architecture || !experience || !codePlan) { setNotice('Complete Architecture, Experience and Code Lab before checking integration.'); return }
     setIntegrationBusy(true); setIntegrationError('')
     try { setIntegration(await analyzeIntegration(project, blueprint, architecture, experience, codePlan)); setNotice('Integration map and connection checks generated.') }
     catch (error) { setIntegrationError(error.message); setNotice('Integration analysis could not be completed.') }
@@ -261,6 +265,7 @@ function App() {
 
   const runQualityAnalysis = async () => {
     if (!project.problem.trim()) { setQualityError('Create a project before running the quality review.'); return }
+    if (!analysis || !architecture || !experience || !codePlan || !integration) { setQualityError('Complete the upstream engineering stages before running Quality & Security.'); return }
     setQualityBusy(true); setQualityError('')
     try { setQuality(await analyzeQuality(project, blueprint, architecture, experience, codePlan, integration)); setNotice('Quality and security review completed.') }
     catch (error) { setQualityError(error.message); setNotice('Quality review could not be completed.') }
@@ -269,6 +274,7 @@ function App() {
 
   const runTestingAnalysis = async () => {
     if (!project.problem.trim()) { setTestingError('Create a project before generating the verification plan.'); return }
+    if (!quality || !integration) { setTestingError('Complete Integration and Quality & Security before generating verification.'); return }
     setTestingBusy(true); setTestingError('')
     try { setTesting(await analyzeTesting(project, blueprint, architecture, experience, codePlan, integration, quality)); setNotice('Testing and verification plan generated.') }
     catch (error) { setTestingError(error.message); setNotice('Testing plan could not be completed.') }
@@ -277,6 +283,7 @@ function App() {
 
   const runRepoOpsAnalysis = async () => {
     if (!project.problem.trim()) { setRepoOpsError('Create a project before generating repository operations.'); return }
+    if (!testing || !quality || !codePlan) { setRepoOpsError('Complete Code Lab, Quality & Security and Testing before repository operations.'); return }
     setRepoOpsBusy(true); setRepoOpsError('')
     try { setRepoOps(await analyzeRepoOps(project, blueprint, architecture, codePlan, integration, quality, testing)); setNotice('Repository and implementation operations generated.') }
     catch (error) { setRepoOpsError(error.message); setNotice('Repository operations could not be generated.') }
@@ -285,6 +292,7 @@ function App() {
 
   const runDeploymentAnalysis = async () => {
     if (!project.problem.trim()) { setDeploymentError('Create a project before generating the release plan.'); return }
+    if (!repoOps || !testing || !quality) { setDeploymentError('Complete Repository Ops, Testing and Quality & Security before release planning.'); return }
     setDeploymentBusy(true); setDeploymentError('')
     try { setDeployment(await analyzeDeployment(project, architecture, integration, quality, testing, repoOps)); setNotice('Deployment and release plan generated.') }
     catch (error) { setDeploymentError(error.message); setNotice('Deployment planning could not be completed.') }
@@ -293,6 +301,7 @@ function App() {
 
   const runPresentationAnalysis = async () => {
     if (!project.problem.trim()) { setPresentationError('Create a project before generating the demo plan.'); return }
+    if (!deployment || !testing || !quality) { setPresentationError('Complete Release, Testing and Quality & Security before preparing the final demo.'); return }
     setPresentationBusy(true); setPresentationError('')
     try { setPresentation(await analyzePresentation(project, blueprint, architecture, experience, quality, testing, deployment)); setNotice('Presentation and demo plan generated.') }
     catch (error) { setPresentationError(error.message); setNotice('Presentation planning could not be completed.') }
