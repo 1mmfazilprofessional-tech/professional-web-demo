@@ -527,11 +527,25 @@ function buildBlueprint(project, analysis) {
     'Results / Status',
     'Settings / Help',
   ]
-  const services = analysis?.recommendedServices || (
-    /api|database|auth|login|ai|model|backend|server/i.test(problem)
-      ? ['Frontend application', 'API / service layer', 'Data or external integration']
-      : ['Frontend application', 'Browser storage', 'Validation and local business logic']
-  )
+
+  const durationText = String(project.duration || '').toLowerCase()
+  const shortHackathon = /hour|minute/.test(durationText) && !/24|48|72/.test(durationText)
+  const problemRequiresServer = /multi-user|shared|real-time|remote data|external api|payment|authentication|login|admin|server|backend|database|ai model|ollama/i.test(problem)
+  const explicitlyRecommended = analysis?.serviceDecisions?.filter((item) => item?.needed).map((item) => item.service).filter(Boolean) || []
+
+  let services
+  if (!problemRequiresServer && (shortHackathon || explicitlyRecommended.length === 0)) {
+    services = ['Frontend application', 'Browser storage', 'Validation and local business logic']
+  } else {
+    services = analysis?.recommendedServices?.length
+      ? analysis.recommendedServices
+      : ['Frontend application', ...explicitlyRecommended]
+  }
+
+  if (!problemRequiresServer && services.some((item) => /database|api|backend|server|auth|ai|model/i.test(item))) {
+    services = ['Frontend application', 'Browser storage', 'Validation and local business logic']
+  }
+
   const tasks = [
     { name: 'Validate the problem and MVP scope', detail: 'Confirm the target user, critical workflow and measurable outcome.' },
     { name: 'Build the core user flow', detail: 'Implement the smallest complete path from input to useful result.' },
@@ -541,7 +555,6 @@ function buildBlueprint(project, analysis) {
   ]
   return { problem, features, screens, services, tasks }
 }
-
 function PageHeader({ eyebrow, title, description, action }) {
   return (
     <div className="page-header">
