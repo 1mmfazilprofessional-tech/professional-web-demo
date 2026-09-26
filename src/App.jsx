@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Activity,
   ArrowRight,
@@ -106,7 +106,8 @@ const stageItems = [
 function App() {
   const [active, setActive] = useState(() => loadWorkspace()?.active || 'dashboard')
   const [menuOpen, setMenuOpen] = useState(false)
-  const [project, setProject] = useState(() => loadWorkspace()?.project || {
+  const savedWorkspace = loadWorkspace()
+  const [project, setProject] = useState(() => savedWorkspace?.project || {
     title: '',
     problem: '',
     users: '',
@@ -115,50 +116,50 @@ function App() {
     teamSize: '4',
     constraints: '',
   })
-  const [created, setCreated] = useState(() => Boolean(loadWorkspace()?.created))
+  const [created, setCreated] = useState(() => Boolean(savedWorkspace?.created))
   const [ollamaHealth, setOllamaHealth] = useState({ ok: false, model: 'qwen2.5-coder:7b', error: 'Not checked yet.' })
   const [aiPrompt, setAiPrompt] = useState('')
   const [aiResponse, setAiResponse] = useState('')
   const [aiBusy, setAiBusy] = useState(false)
   const [notice, setNotice] = useState('')
-  const [analysis, setAnalysis] = useState(null)
+  const [analysis, setAnalysis] = useState(() => savedWorkspace?.analysis ?? null)
   const [analysisBusy, setAnalysisBusy] = useState(false)
   const [analysisError, setAnalysisError] = useState('')
-  const [architecture, setArchitecture] = useState(null)
+  const [architecture, setArchitecture] = useState(() => savedWorkspace?.architecture ?? null)
   const [architectureBusy, setArchitectureBusy] = useState(false)
   const [architectureError, setArchitectureError] = useState('')
-  const [experience, setExperience] = useState(null)
+  const [experience, setExperience] = useState(() => savedWorkspace?.experience ?? null)
   const [experienceBusy, setExperienceBusy] = useState(false)
   const [experienceError, setExperienceError] = useState('')
-  const [codePlan, setCodePlan] = useState(null)
+  const [codePlan, setCodePlan] = useState(() => savedWorkspace?.codePlan ?? null)
   const [codeBusy, setCodeBusy] = useState(false)
   const [codeError, setCodeError] = useState('')
-  const [integration, setIntegration] = useState(null)
+  const [integration, setIntegration] = useState(() => savedWorkspace?.integration ?? null)
   const [integrationBusy, setIntegrationBusy] = useState(false)
   const [integrationError, setIntegrationError] = useState('')
-  const [debugInput, setDebugInput] = useState('')
-  const [debugResult, setDebugResult] = useState(null)
+  const [debugInput, setDebugInput] = useState(() => savedWorkspace?.debugInput ?? '')
+  const [debugResult, setDebugResult] = useState(() => savedWorkspace?.debugResult ?? null)
   const [debugBusy, setDebugBusy] = useState(false)
   const [debugError, setDebugError] = useState('')
-  const [quality, setQuality] = useState(null)
+  const [quality, setQuality] = useState(() => savedWorkspace?.quality ?? null)
   const [qualityBusy, setQualityBusy] = useState(false)
   const [qualityError, setQualityError] = useState('')
-  const [testing, setTesting] = useState(null)
+  const [testing, setTesting] = useState(() => savedWorkspace?.testing ?? null)
   const [testingBusy, setTestingBusy] = useState(false)
   const [testingError, setTestingError] = useState('')
-  const [repoOps, setRepoOps] = useState(null)
+  const [repoOps, setRepoOps] = useState(() => savedWorkspace?.repoOps ?? null)
   const [repoOpsBusy, setRepoOpsBusy] = useState(false)
   const [repoOpsError, setRepoOpsError] = useState('')
-  const [deployment, setDeployment] = useState(null)
+  const [deployment, setDeployment] = useState(() => savedWorkspace?.deployment ?? null)
   const [deploymentBusy, setDeploymentBusy] = useState(false)
   const [deploymentError, setDeploymentError] = useState('')
-  const [presentation, setPresentation] = useState(null)
+  const [presentation, setPresentation] = useState(() => savedWorkspace?.presentation ?? null)
   const [presentationBusy, setPresentationBusy] = useState(false)
   const [presentationError, setPresentationError] = useState('')
 
   const blueprint = useMemo(() => buildBlueprint(project, analysis), [project, analysis])
 
-  useMemo(() => {
+  useEffect(() => {
     saveWorkspace({
       active,
       project,
@@ -178,7 +179,7 @@ function App() {
     })
   }, [active, project, created, analysis, architecture, experience, codePlan, integration, debugInput, debugResult, quality, testing, repoOps, deployment, presentation])
 
-  useMemo(() => {
+  useEffect(() => {
     checkOllamaHealth().then(setOllamaHealth)
   }, [])
 
