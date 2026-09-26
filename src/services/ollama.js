@@ -210,3 +210,28 @@ export async function analyzeError(errorInput, project = {}, architecture = null
     throw new Error('The local model returned invalid debugging JSON. Run the investigation again.')
   }
 }
+
+
+export async function analyzeQuality(project, blueprint, architecture, experience, codePlan, integration) {
+  const prompt = [
+    'You are a senior application security engineer, QA lead, accessibility specialist and performance engineer.',
+    'Review the proposed hackathon system before implementation. Be concrete and evidence-aware.',
+    'Do not claim a system is secure, accessible, fast or production-ready without evidence. Mark uncertain items as Review.',
+    'Return ONLY valid JSON with keys: overallStatus, summary, riskCount, domains (array of {name,status,findings}), priorityRisks (array), remediationTasks (array), performanceChecks (array), securityChecks (array).',
+    'Evaluate security, accessibility, performance, reliability, maintainability and hackathon delivery risk.',
+    'Project: ' + JSON.stringify(project),
+    'Blueprint: ' + JSON.stringify(blueprint),
+    'Architecture: ' + JSON.stringify(architecture || {}),
+    'Experience: ' + JSON.stringify(experience || {}),
+    'Code plan: ' + JSON.stringify(codePlan || {}),
+    'Integration: ' + JSON.stringify(integration || {})
+  ].join('\n')
+  const raw = await generate(prompt)
+  try {
+    return JSON.parse(raw)
+  } catch {
+    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
+    if (fenced) return JSON.parse(fenced[1])
+    throw new Error('The local model returned invalid quality-review JSON. Run the review again.')
+  }
+}
