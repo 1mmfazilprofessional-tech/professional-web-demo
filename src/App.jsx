@@ -74,7 +74,7 @@ function App() {
   const [analysisBusy, setAnalysisBusy] = useState(false)
   const [analysisError, setAnalysisError] = useState('')
 
-  const blueprint = useMemo(() => buildBlueprint(project), [project])
+  const blueprint = useMemo(() => buildBlueprint(project, analysis), [project, analysis])
 
   const go = (section) => {
     setActive(section)
@@ -486,8 +486,24 @@ function Metric({ label, value }) {
   return <Card><span className="metric-value">{value}</span><span className="metric-label">{label}</span></Card>
 }
 
-function buildBlueprint(project) {
+function buildBlueprint(project, analysis = null) {
   const problem = project.problem || 'Define the problem statement to generate a project-specific blueprint.'
+  if (analysis) {
+    return {
+      problem: analysis.problemUnderstanding?.summary || project.problem,
+      features: (analysis.mvpFeatures || []).map((item) => item.name),
+      screens: analysis.recommendedScreens || [],
+      services: analysis.recommendedServices || [],
+      stack: [
+        { name: 'React + Vite', reason: 'Fast component-based frontend for a hackathon web product.', layer: 'Frontend', icon: 'UI' },
+        { name: 'Node.js API', reason: 'A clear service boundary for business logic and integrations.', layer: 'Backend', icon: 'API' },
+        { name: 'PostgreSQL / Supabase', reason: 'Use structured persistence when the problem needs relational data.', layer: 'Data', icon: 'DB' },
+        { name: 'Ollama', reason: 'Local AI capability without a paid model API.', layer: 'AI', icon: 'AI' },
+      ],
+      tasks: (analysis.nextActions || []).map((name, index) => ({ name, owner: index % 2 === 0 ? 'Product / Frontend' : 'Backend / AI', priority: index < 3 ? 'High' : 'Medium' })),
+    }
+  }
+
   return {
     problem,
     features: ['Core user workflow', 'Authentication / role control when required', 'Responsive dashboard or primary experience', 'Validation, error and loading states', 'Analytics or reporting where useful'],
