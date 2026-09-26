@@ -12,14 +12,21 @@ const allowedOrigins = new Set([
   'https://1mmfazilprofessional-tech.github.io',
 ])
 
+function corsHeaders(origin) {
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Private-Network': 'true',
+    'Vary': 'Origin',
+  }
+}
+
 function sendJson(res, status, body, origin) {
   const payload = JSON.stringify(body)
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Vary': 'Origin',
+    ...corsHeaders(origin),
   })
   res.end(payload)
 }
@@ -29,12 +36,7 @@ const server = http.createServer(async (req, res) => {
   const corsOrigin = origin && allowedOrigins.has(origin) ? origin : null
 
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, {
-      'Access-Control-Allow-Origin': corsOrigin,
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-      'Vary': 'Origin',
-    })
+    res.writeHead(204, corsHeaders(corsOrigin))
     res.end()
     return
   }
@@ -83,10 +85,7 @@ const server = http.createServer(async (req, res) => {
       const text = await response.text()
       res.writeHead(response.status, {
         'Content-Type': response.headers.get('content-type') || 'application/json',
-        'Access-Control-Allow-Origin': corsOrigin,
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Vary': 'Origin',
+        ...corsHeaders(corsOrigin),
       })
       res.end(text)
     } catch (error) {
