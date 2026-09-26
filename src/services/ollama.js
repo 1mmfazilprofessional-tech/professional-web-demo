@@ -235,3 +235,29 @@ export async function analyzeQuality(project, blueprint, architecture, experienc
     throw new Error('The local model returned invalid quality-review JSON. Run the review again.')
   }
 }
+
+
+export async function analyzeTesting(project, blueprint, architecture, experience, codePlan, integration, quality) {
+  const prompt = [
+    'You are a senior QA engineer, test architect and hackathon release lead.',
+    'Create a practical verification strategy for the proposed system. Prioritize the critical user journey and integration boundaries.',
+    'Do not claim tests have passed. This is a test plan and verification gate.',
+    'Return ONLY valid JSON with keys: overallStatus, summary, criticalPathCount, categories (array of {name,purpose,tests}), criticalJourneys (array), edgeCases (array), regressionChecks (array), preDemoGate (array).',
+    'Cover unit, integration, end-to-end, security, accessibility, performance and failure-path testing where relevant.',
+    'Project: ' + JSON.stringify(project),
+    'Blueprint: ' + JSON.stringify(blueprint),
+    'Architecture: ' + JSON.stringify(architecture || {}),
+    'Experience: ' + JSON.stringify(experience || {}),
+    'Code plan: ' + JSON.stringify(codePlan || {}),
+    'Integration: ' + JSON.stringify(integration || {}),
+    'Quality review: ' + JSON.stringify(quality || {})
+  ].join('\n')
+  const raw = await generate(prompt)
+  try {
+    return JSON.parse(raw)
+  } catch {
+    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
+    if (fenced) return JSON.parse(fenced[1])
+    throw new Error('The local model returned invalid testing JSON. Run the test-plan generation again.')
+  }
+}
