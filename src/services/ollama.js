@@ -72,6 +72,46 @@ async function generate(prompt, model = MODEL) {
   )
 }
 
+function parseJsonResponse(raw, label) {
+  if (typeof raw !== 'string' || !raw.trim()) {
+    throw new Error(`Local AI returned an empty ${label} response.`)
+  }
+
+  const cleaned = raw
+    .trim()
+    .replace(/^\`\`\`(?:json)?\s*/i, '')
+    .replace(/\s*\`\`\`$/i, '')
+    .trim()
+
+  try {
+    return JSON.parse(cleaned)
+  } catch {
+    const firstObject = cleaned.indexOf('{')
+    const lastObject = cleaned.lastIndexOf('}')
+    if (firstObject >= 0 && lastObject > firstObject) {
+      try { return JSON.parse(cleaned.slice(firstObject, lastObject + 1)) } catch {}
+    }
+
+    const firstArray = cleaned.indexOf('[')
+    const lastArray = cleaned.lastIndexOf(']')
+    if (firstArray >= 0 && lastArray > firstArray) {
+      try { return JSON.parse(cleaned.slice(firstArray, lastArray + 1)) } catch {}
+    }
+
+    throw new Error(`Local AI returned invalid ${label} JSON. The response was not parseable.`)
+  }
+}
+
+function requireArray(value, key, label) {
+  if (!Array.isArray(value[key])) throw new Error(`Local AI ${label} is missing the ${key} array.`)
+}
+
+function requireObject(value, key, label) {
+  if (!value || typeof value[key] !== 'object' || value[key] === null || Array.isArray(value[key])) {
+    throw new Error(`Local AI ${label} is missing the ${key} object.`)
+  }
+}
+
 export async function askOllama(prompt, project = {}) {
   const context = project.problem ? `Project problem: ${project.problem}\nProject title: ${project.title || 'Untitled'}` : ''
   return generate(`${context}\n\nUser request: ${prompt}`)
@@ -110,14 +150,8 @@ Constraints: ${project.constraints || 'Not specified'}
 
 Be concrete and hackathon-realistic. Prefer a smaller reliable MVP plus a few differentiated innovations over a huge feature list. For every backend, database, authentication, API, AI/model, external service or server recommendation, explicitly decide whether it is actually necessary for the stated problem and duration. Do not recommend infrastructure merely because it is common. A simple client-side app should remain client-side.`
 
-  const raw = await generate(prompt)
-  try {
-    return JSON.parse(raw)
-  } catch {
-    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
-    if (fenced) return JSON.parse(fenced[1])
-    throw new Error('The local model returned invalid JSON. Run the analysis again.')
-  }
+  const parsed = parseJsonResponse(await generate(prompt), 'problem analysis')
+  return validateStructuredResult(parsed, ["problemUnderstanding","mvpFeatures"], 'problem analysis')
 }
 
 
@@ -154,14 +188,8 @@ Problem intelligence:
 ${JSON.stringify(analysis || {})}
 
 The architecture must explicitly consider frontend/backend boundaries, APIs, data persistence, authentication if required, AI integrations if useful, validation, error handling, security, and how the pieces communicate. Prefer technologies already selected by the blueprint unless there is a strong reason to change them.`
-  const raw = await generate(prompt)
-  try {
-    return JSON.parse(raw)
-  } catch {
-    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
-    if (fenced) return JSON.parse(fenced[1])
-    throw new Error('The local model returned invalid architecture JSON. Run the architecture generation again.')
-  }
+  const parsed = parseJsonResponse(await generate(prompt), 'architecture')
+  return validateStructuredResult(parsed, ["layers"], 'architecture')
 }
 
 
@@ -177,14 +205,8 @@ export async function analyzeExperience(project, blueprint, architecture, analys
     'Problem intelligence: ' + JSON.stringify(analysis || {}),
     'Be specific and implementable. Avoid decorative features that do not support the problem.'
   ].join('\n')
-  const raw = await generate(prompt)
-  try {
-    return JSON.parse(raw)
-  } catch {
-    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
-    if (fenced) return JSON.parse(fenced[1])
-    throw new Error('The local model returned invalid UX JSON. Run the experience generation again.')
-  }
+  const parsed = parseJsonResponse(await generate(prompt), 'UX analysis')
+  return validateStructuredResult(parsed, ["screens"], 'UX analysis')
 }
 
 
@@ -200,14 +222,8 @@ export async function analyzeCodePlan(project, blueprint, architecture, experien
     'Experience: ' + JSON.stringify(experience || {}),
     'Favor simple, maintainable hackathon architecture. Avoid unnecessary infrastructure.'
   ].join('\n')
-  const raw = await generate(prompt)
-  try {
-    return JSON.parse(raw)
-  } catch {
-    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
-    if (fenced) return JSON.parse(fenced[1])
-    throw new Error('The local model returned invalid code-plan JSON. Run the code plan again.')
-  }
+  const parsed = parseJsonResponse(await generate(prompt), 'code plan')
+  return validateStructuredResult(parsed, ["files"], 'code plan')
 }
 
 
@@ -225,14 +241,8 @@ export async function analyzeIntegration(project, blueprint, architecture, exper
     'Experience: ' + JSON.stringify(experience || {}),
     'Code plan: ' + JSON.stringify(codePlan || {}),
   ].join('\n')
-  const raw = await generate(prompt)
-  try {
-    return JSON.parse(raw)
-  } catch {
-    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
-    if (fenced) return JSON.parse(fenced[1])
-    throw new Error('The local model returned invalid integration JSON. Run the integration check again.')
-  }
+  const parsed = parseJsonResponse(await generate(prompt), 'integration analysis')
+  return validateStructuredResult(parsed, ["connections"], 'integration analysis')
 }
 
 
@@ -248,14 +258,8 @@ export async function analyzeError(errorInput, project = {}, architecture = null
     'Integration context: ' + JSON.stringify(integration || {}),
     'Failure input: ' + errorInput
   ].join('\n')
-  const raw = await generate(prompt)
-  try {
-    return JSON.parse(raw)
-  } catch {
-    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
-    if (fenced) return JSON.parse(fenced[1])
-    throw new Error('The local model returned invalid debugging JSON. Run the investigation again.')
-  }
+  const parsed = parseJsonResponse(await generate(prompt), 'debug analysis')
+  return validateStructuredResult(parsed, ["rootCauseHypotheses"], 'debug analysis')
 }
 
 
@@ -273,14 +277,8 @@ export async function analyzeQuality(project, blueprint, architecture, experienc
     'Code plan: ' + JSON.stringify(codePlan || {}),
     'Integration: ' + JSON.stringify(integration || {})
   ].join('\n')
-  const raw = await generate(prompt)
-  try {
-    return JSON.parse(raw)
-  } catch {
-    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
-    if (fenced) return JSON.parse(fenced[1])
-    throw new Error('The local model returned invalid quality-review JSON. Run the review again.')
-  }
+  const parsed = parseJsonResponse(await generate(prompt), 'quality review')
+  return validateStructuredResult(parsed, ["domains"], 'quality review')
 }
 
 
@@ -299,14 +297,8 @@ export async function analyzeTesting(project, blueprint, architecture, experienc
     'Integration: ' + JSON.stringify(integration || {}),
     'Quality review: ' + JSON.stringify(quality || {})
   ].join('\n')
-  const raw = await generate(prompt)
-  try {
-    return JSON.parse(raw)
-  } catch {
-    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
-    if (fenced) return JSON.parse(fenced[1])
-    throw new Error('The local model returned invalid testing JSON. Run the test-plan generation again.')
-  }
+  const parsed = parseJsonResponse(await generate(prompt), 'testing plan')
+  return validateStructuredResult(parsed, ["categories"], 'testing plan')
 }
 
 
@@ -325,14 +317,8 @@ export async function analyzeRepoOps(project, blueprint, architecture, codePlan,
     'Quality: ' + JSON.stringify(quality || {}),
     'Testing: ' + JSON.stringify(testing || {})
   ].join('\n')
-  const raw = await generate(prompt)
-  try {
-    return JSON.parse(raw)
-  } catch {
-    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
-    if (fenced) return JSON.parse(fenced[1])
-    throw new Error('The local model returned invalid repository-operation JSON. Run the repository plan again.')
-  }
+  const parsed = parseJsonResponse(await generate(prompt), 'repository plan')
+  return validateStructuredResult(parsed, ["modules"], 'repository plan')
 }
 
 
@@ -350,14 +336,8 @@ export async function analyzeDeployment(project, architecture, integration, qual
     'Testing: ' + JSON.stringify(testing || {}),
     'Repository operations: ' + JSON.stringify(repoOps || {})
   ].join('\n')
-  const raw = await generate(prompt)
-  try {
-    return JSON.parse(raw)
-  } catch {
-    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
-    if (fenced) return JSON.parse(fenced[1])
-    throw new Error('The local model returned invalid deployment JSON. Run the release plan again.')
-  }
+  const parsed = parseJsonResponse(await generate(prompt), 'deployment plan')
+  return validateStructuredResult(parsed, ["stages"], 'deployment plan')
 }
 
 
@@ -376,12 +356,6 @@ export async function analyzePresentation(project, blueprint, architecture, expe
     'Testing: ' + JSON.stringify(testing || {}),
     'Deployment: ' + JSON.stringify(deployment || {})
   ].join('\n')
-  const raw = await generate(prompt)
-  try {
-    return JSON.parse(raw)
-  } catch {
-    const fenced = raw.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\`\`\`/)
-    if (fenced) return JSON.parse(fenced[1])
-    throw new Error('The local model returned invalid presentation JSON. Run the demo-plan generation again.')
-  }
+  const parsed = parseJsonResponse(await generate(prompt), 'presentation plan')
+  return validateStructuredResult(parsed, ["sections"], 'presentation plan')
 }
