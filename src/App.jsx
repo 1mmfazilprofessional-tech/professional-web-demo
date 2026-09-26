@@ -52,7 +52,7 @@ import Button from './components/ui/Button'
 import Card from './components/ui/Card'
 import Badge from './components/ui/Badge'
 import Input from './components/ui/Input'
-import { analyzeArchitecture, analyzeExperience, analyzeCodePlan, analyzeProblem, askOllama, checkOllamaHealth, isOllamaConfigured } from './services/ollama'
+import { analyzeArchitecture, analyzeExperience, analyzeCodePlan, analyzeProblem, analyzeIntegration, analyzeError, analyzeQuality, analyzeTesting, analyzeRepoOps, analyzeDeployment, analyzePresentation, askOllama, checkOllamaHealth } from './services/ollama'
 import './styles/design-system.css'
 
 class AppErrorBoundary extends Component {
@@ -207,6 +207,7 @@ function App() {
   const [presentationError, setPresentationError] = useState('')
 
   const blueprint = useMemo(() => buildBlueprint(project, analysis), [project, analysis])
+  const stages = useMemo(() => ({ analysis, architecture, experience, codePlan, integration, quality, testing, repoOps, deployment, presentation }), [analysis, architecture, experience, codePlan, integration, quality, testing, repoOps, deployment, presentation])
 
   useEffect(() => {
     saveWorkspace({
@@ -453,7 +454,7 @@ function App() {
           {active === 'architecture' && <Architecture blueprint={blueprint} architecture={architecture} busy={architectureBusy} error={architectureError} runAnalysis={runArchitectureAnalysis} />}
           {active === 'stack' && <TechStack blueprint={blueprint} />}
           {active === 'ux' && <Experience blueprint={blueprint} architecture={architecture} experience={experience} busy={experienceBusy} error={experienceError} runAnalysis={runExperienceAnalysis} />}
-          {active === 'code' && <CodeLab blueprint={blueprint} architecture={architecture} experience={experience} codePlan={codePlan} busy={codeBusy} error={codeError} runAnalysis={runCodePlanning} />}
+          {active === 'code' && <CodeLab blueprint={blueprint} codePlan={codePlan} busy={codeBusy} error={codeError} runAnalysis={runCodePlanning} />}
           {active === 'integration' && <Integration blueprint={blueprint} architecture={architecture} codePlan={codePlan} integration={integration} busy={integrationBusy} error={integrationError} runAnalysis={runIntegrationAnalysis} />}
           {active === 'debug' && <Debugging debugInput={debugInput} setDebugInput={setDebugInput} result={debugResult} busy={debugBusy} error={debugError} runAnalysis={runDebugAnalysis} />}
           {active === 'quality' && <QualitySecurity quality={quality} busy={qualityBusy} error={qualityError} runAnalysis={runQualityAnalysis} />}
@@ -697,7 +698,7 @@ function Dashboard({ project, created, go, ollamaHealth, stages }) {
         project={project}
         created={created}
         ollamaHealth={ollamaHealth}
-        stages={{ analysis, architecture, experience, codePlan, integration, quality, testing, repoOps, deployment, presentation }}
+        stages={stages}
       />
       <div className="pipeline-grid">
         {stageItems.map(([name, description], index) => (
@@ -871,7 +872,7 @@ function Experience({ blueprint, architecture, experience, busy, error, runAnaly
   )
 }
 
-function CodeLab({ blueprint, architecture, experience, codePlan, busy, error, runAnalysis }) {
+function CodeLab({ blueprint, codePlan, busy, error, runAnalysis }) {
   const files = codePlan?.files || [
     { path: 'src/', purpose: 'Application source code' },
     { path: 'src/components/', purpose: 'Reusable UI components' },
