@@ -2,6 +2,7 @@ const LOCAL_PROXY_URL = 'http://127.0.0.1:8787/api/ollama'
 const SAME_ORIGIN_PROXY_URL = '/api/ollama'
 const DIRECT_OLLAMA_URL = 'http://127.0.0.1:11434/api/generate'
 const MODEL = 'qwen2.5-coder:7b'
+const REQUEST_TIMEOUT_MS = 45_000
 
 export function getOllamaConfig() {
   return {
@@ -44,20 +45,25 @@ async function generate(prompt, model = MODEL) {
 
   for (const endpoint of endpoints) {
     try {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       })
+      clearTimeout(timeout)
 
       if (response.ok) {
         const data = await response.json()
-        return data.response || ''
+        if (typeof data.response !== 'string') throw new Error('Local Ollama returned an unexpected response.')
+        return data.response
       }
 
       lastError = new Error(`Ollama returned HTTP ${response.status}.`)
     } catch (error) {
-      lastError = error
+      lastError = error?.name === 'AbortError' ? new Error('Local Ollama request timed out after 45 seconds.') : error
     }
   }
 
